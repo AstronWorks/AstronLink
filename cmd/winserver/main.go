@@ -2,113 +2,142 @@
 
 // Package main implements a Windows system-tray GUI wrapper for the reversproxy
 // SERVER. It runs the full server (data listener, HTTP/HTTPS proxies, admin API,
-// client dial loops) in the user session and exposes status + control through a
-// tray icon, a native management console (lxn/walk), and a settings dialog.
+// client dial loops) in the user session and exposes status and control
+// through a tray icon and a management console window (Gio; internal/gui).
+// Every setting is edited in the console's 설정 page — there is no file to
+// open by hand.
 //
 // A Windows service runs in session 0 and cannot show a tray icon, so this app
-// is meant to run interactively (launch at logon via the tray "자동 실행" toggle)
+// is meant to run interactively (launch at logon via the 자동 실행 toggle)
 // instead of as the NSSM service.
 package main
 
 import (
-	"context"
 	_ "embed"
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/app"
-	"github.com/EcoKG/reversproxy/internal/config"
 	"github.com/getlantern/systray"
+
+	"github.com/EcoKG/reversproxy/internal/gui/serverui"
 )
 
-//go:embed assets/icon.ico
-var iconData []byte
+var (
+	//go:embed assets/tray-running.ico
+	trayRunning []byte
+	//go:embed assets/tray-stopped.ico
+	trayStopped []byte
+	//go:embed assets/tray-error.ico
+	trayError []byte
+)
 
-var mStatusItem *systray.MenuItem
+var (
+	configPath string
+	logPath    string
+
+	mStatusItem    *systray.MenuItem
+	mAutostartItem *systray.MenuItem
+)
 
 func main() {
-	// Only one instance per user session (prevents double port binding).
+	exeDir := "."
+	if p, err := os.Executable(); err == nil {
+		exeDir = filepath.Dir(p)
+	}
+	// Relative paths in server.yaml (certificates, drop folder) resolve
+	// against the program folder, also when started from the Run key, whose
+	// working directory is System32.
+	_ = os.Chdir(exeDir)
+	configPath = filepath.Join(exeDir, "server.yaml")
+	logPath = filepath.Join(exeDir, "server.log")
+
+	// Only one instance per user session (prevents double port binding); a
+	// second launch asks the running one to show its console.
 	acquireSingleInstance()
 	systray.Run(onReady, onExit)
 }
 
 func onReady() {
-	systray.SetIcon(iconData)
+	systray.SetIcon(trayStopped)
 	systray.SetTitle("Reversproxy Server")
 	systray.SetTooltip("Reversproxy 서버")
 
 	mStatus := systray.AddMenuItem("상태: 시작 중...", "서버 상태")
 	mStatus.Disable()
 	systray.AddSeparator()
-	mRestart := systray.AddMenuItem("서버 재시작", "리스너·클라이언트 dial 루프 재시작")
-	mConsole := systray.AddMenuItem("관리 콘솔 열기", "접속 클라이언트·터널·트래픽 통계")
-	mSettings := systray.AddMenuItem("설정", "서버 설정 편집")
-	mConfigFile := systray.AddMenuItem("설정 파일 열기 (고급)", "server.yaml 직접 편집")
-	mLogs := systray.AddMenuItem("로그 파일 열기", "server.log 열기")
-	mAutostart := systray.AddMenuItemCheckbox("로그온 시 자동 실행", "Windows 로그온 시 자동 시작", isAutoStartEnabled())
+	mConsole := systray.AddMenuItem("관리 콘솔 열기", "상태 · 클라이언트 · 터널 · 로그 · 설정")
+	mSettings := systray.AddMenuItem("설정", "관리 콘솔의 설정 탭")
+	mLogs := systray.AddMenuItem("로그 보기", "관리 콘솔의 로그 탭")
+	mRestart := systray.AddMenuItem("서버 재시작", "리스너와 클라이언트 접속을 다시 시작")
 	systray.AddSeparator()
-	mAbout := systray.AddMenuItem("정보(About)", "버전 정보")
+	mAutostart := systray.AddMenuItemCheckbox("로그온 시 자동 실행", "Windows 로그온 시 자동 시작", isAutoStartEnabled())
+	mAbout := systray.AddMenuItem("정보", "버전 정보")
 	mQuit := systray.AddMenuItem("종료", "서버 종료")
+	mStatusItem, mAutostartItem = mStatus, mAutostart
 
-	mStatusItem = mStatus
-
-	exeDir := "."
-	if p, err := os.Executable(); err == nil {
-		exeDir = filepath.Dir(p)
-	}
-	configPath = filepath.Join(exeDir, "server.yaml")
-	logPath = filepath.Join(exeDir, "server.log")
-
-	// Rotate an oversized log before opening, then route stdout/stderr (no console
-	// in GUI mode) to the file so the log pane and '로그 파일 열기' work.
+	// Rotate an oversized log before opening, then route stdout/stderr (no
+	// console in GUI mode) to the file so the log page can show it.
 	rotateLogIfLarge(logPath)
-	if lf, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err == nil {
+	if lf, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err == nil {
 		os.Stdout = lf
 		os.Stderr = lf
 	}
 	fmt.Fprintf(os.Stdout, "{\"msg\":\"winserver starting\",\"version\":%q,\"commit\":%q,\"build\":%q}\n",
 		Version, Commit, BuildTime)
 
-	// Create a default config if missing.
-	if _, statErr := os.Stat(configPath); os.IsNotExist(statErr) {
-		const tmpl = "data_addr: \":8444\"\nhttp_addr: \":8080\"\nhttps_addr: \":8445\"\nadmin_addr: \":9090\"\nauth_token: \"changeme\"\nlog_level: \"info\"\ninsecure: true\nallow_private_targets: true\nclients: []\n"
-		_ = os.WriteFile(configPath, []byte(tmpl), 0644)
-		openPath(configPath)
-	}
+	go watchShowRequests()
 
-	startServer()
+	// First run: write a working default config (random token) and open the
+	// settings page so the user can add the clients to dial.
+	firstRun := false
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		if err := writeDefaultConfig(configPath); err != nil {
+			logError("기본 설정 파일을 만들지 못했습니다", err)
+		}
+		firstRun = true
+	}
+	go func() {
+		defer recoverLog("startup")
+		if ok := startServer(); !ok || firstRun {
+			page := serverui.PageOverview
+			if firstRun {
+				page = serverui.PageSettings
+			}
+			openConsole(page)
+		}
+	}()
 
 	for {
 		select {
+		case <-mConsole.ClickedCh:
+			guard("console", func() { openConsole(serverui.PageOverview) })
+		case <-mSettings.ClickedCh:
+			guard("settings", func() { openConsole(serverui.PageSettings) })
+		case <-mLogs.ClickedCh:
+			guard("logs", func() { openConsole(serverui.PageLogs) })
 		case <-mRestart.ClickedCh:
 			guard("restart", restartServer)
-		case <-mConsole.ClickedCh:
-			guard("console", openConsole)
-		case <-mSettings.ClickedCh:
-			guard("settings", openSettingsDialog)
-		case <-mConfigFile.ClickedCh:
-			guard("configfile", func() { openPath(configPath) })
-		case <-mLogs.ClickedCh:
-			guard("logs", func() { openPath(logPath) })
 		case <-mAbout.ClickedCh:
-			guard("about", showAbout)
+			guard("about", func() { openConsole(serverui.PageAbout) })
 		case <-mAutostart.ClickedCh:
 			guard("autostart", func() {
 				enable := !mAutostart.Checked()
 				if err := setAutoStart(enable); err != nil {
 					showError("Reversproxy", "자동 실행 설정 실패:\n"+err.Error())
-				} else if enable {
-					mAutostart.Check()
-				} else {
-					mAutostart.Uncheck()
+					return
 				}
+				syncAutostartItem(enable)
 			})
 		case <-mQuit.ClickedCh:
-			stopServer()
-			time.Sleep(700 * time.Millisecond)
+			closeConsole()
+			if done := stopServer(); done != nil {
+				select {
+				case <-done:
+				case <-time.After(6 * time.Second):
+				}
+			}
 			systray.Quit()
 			return
 		}
@@ -118,95 +147,37 @@ func onReady() {
 func onExit() {}
 
 // guard runs a tray-menu action with panic recovery so a panic cannot kill the
-// menu loop (C03).
+// menu loop.
 func guard(where string, fn func()) {
 	defer recoverLog("menu." + where)
 	fn()
 }
 
-// startServer loads the config and runs the server in a fresh context. It waits
-// briefly for an immediate listener-bind failure before claiming "실행 중".
-func startServer() {
-	cfg, err := config.LoadServerConfig(configPath)
-	if err != nil {
-		showError("Reversproxy", "설정 파일 오류:\n"+err.Error())
-		setStatus("상태: 설정 오류")
+// syncAutostartItem mirrors the autostart state in the tray checkbox (the
+// console can change it too).
+func syncAutostartItem(on bool) {
+	if mAutostartItem == nil {
 		return
 	}
-
-	a, err := app.NewServerApp(cfg)
-	if err != nil {
-		showError("Reversproxy",
-			"서버 초기화 실패:\n"+err.Error()+
-				"\n\n설정에서 강한 auth_token을 지정하거나, 개발용이라면 insecure: true 를 추가하세요.")
-		setStatus("상태: 시작 실패")
-		return
+	if on {
+		mAutostartItem.Check()
+	} else {
+		mAutostartItem.Uncheck()
 	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	setApp(a, cancel)
-
-	startErr := make(chan error, 1)
-	go func() {
-		defer recoverLog("server.Start")
-		// Start blocks until ctx is cancelled; it returns early only on a
-		// startup failure (e.g. a listen address already in use).
-		err := a.Start(ctx)
-		select {
-		case startErr <- err:
-		default:
-		}
-		clearRunningIf(a)
-		if err != nil && ctx.Err() == nil {
-			setStatus("상태: 시작 실패 (포트 충돌?)")
-			showError("Reversproxy",
-				"서버 시작 실패:\n"+err.Error()+
-					"\n\n기존 NSSM 서비스가 같은 포트를 점유 중일 수 있습니다. 서비스를 중지하세요.")
-		}
-	}()
-
-	// Catch an immediate bind error before claiming "실행 중".
-	select {
-	case e := <-startErr:
-		if e != nil {
-			return // failure already surfaced by the goroutine
-		}
-		setStatus("상태: 실행 중")
-	case <-time.After(350 * time.Millisecond):
-		setStatus("상태: 실행 중")
-	}
-	refreshConsole()
 }
 
-// stopServer cancels the running server.
-func stopServer() {
-	if c := getCancel(); c != nil {
-		c()
+// setTray updates the tray icon, tooltip and status line.
+func setTray(phase serverui.Phase, text string) {
+	icon := trayStopped
+	switch phase {
+	case serverui.Running, serverui.Starting:
+		icon = trayRunning
+	case serverui.Failed:
+		icon = trayError
 	}
-	markStopped()
-}
-
-// restartServer stops the server and starts a fresh instance after a short delay
-// that lets the listeners release their ports.
-func restartServer() {
-	stopServer()
-	setStatus("상태: 재시작 중...")
-	go func() {
-		defer recoverLog("restart")
-		time.Sleep(900 * time.Millisecond)
-		startServer()
-		refreshConsole()
-	}()
-}
-
-func setStatus(text string) {
+	systray.SetIcon(icon)
 	if mStatusItem != nil {
-		mStatusItem.SetTitle(text)
+		mStatusItem.SetTitle("상태: " + text)
 	}
 	systray.SetTooltip("Reversproxy 서버 — " + text)
-}
-
-// openPath opens a file with the system default handler on Windows.
-func openPath(path string) {
-	_ = exec.Command("cmd", "/c", "start", "", path).Start()
 }
