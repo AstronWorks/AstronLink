@@ -339,6 +339,140 @@ func TestAttachFailureRollsBack(t *testing.T) {
 	}
 }
 
+// attachLoopback attaches a full-or-split tunnel session to a server on this host and returns the harness and Attach error.
+func attachLoopback(t *testing.T, peer string, routes []netip.Prefix) (*harness, error) {
+	t.Helper()
+	h := newHarness(t, Options{Routes: routes})
+	h.m.TrackPeer(netip.MustParseAddr(peer))
+	return h, h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink())
+}
+
+// expectLoopbackRefused fails unless Attach was refused with no OS change and an inactive adapter.
+func expectLoopbackRefused(t *testing.T, h *harness, err error) {
+	t.Helper()
+	if err == nil || !strings.Contains(err.Error(), "full tunnel to a server on this host") {
+		t.Fatalf("Attach error = %v; want a full-tunnel-on-this-host refusal", err)
+	}
+	expectCalls(t, h.nc.take())
+	if st := h.m.Status(); st.Active {
+		t.Fatal("active after a refused Attach")
+	}
+}
+
+func TestFullTunnelRefusedForLoopbackPeer(t *testing.T) {
+	h, err := attachLoopback(t, "127.0.0.1", nil)
+	expectLoopbackRefused(t, h, err)
+}
+
+func TestFullTunnelRefusedForIPv6LoopbackPeer(t *testing.T) {
+	h, err := attachLoopback(t, "::1", nil)
+	expectLoopbackRefused(t, h, err)
+}
+
+func TestFullTunnelRefusedForMappedLoopbackPeer(t *testing.T) {
+	h, err := attachLoopback(t, "::ffff:127.0.0.1", nil)
+	expectLoopbackRefused(t, h, err)
+}
+
+func TestExplicitDefaultRouteRefusedForLoopbackPeer(t *testing.T) {
+	h, err := attachLoopback(t, "127.0.0.1", []netip.Prefix{netip.MustParsePrefix("0.0.0.0/0")})
+	expectLoopbackRefused(t, h, err)
+}
+
+func TestSplitTunnelAllowedForLoopbackPeer(t *testing.T) {
+	h, err := attachLoopback(t, "127.0.0.1", []netip.Prefix{netip.MustParsePrefix("198.18.0.0/15")})
+	if err != nil {
+		t.Fatalf("Attach: %v", err)
+	}
+	for _, c := range h.nc.take() {
+		if strings.HasPrefix(c, "bypass") {
+			t.Fatalf("loopback server must not get a bypass route: %q", c)
+		}
+	}
+}
+
+func TestLoopbackPeerReleaseAllowsFullTunnel(t *testing.T) {
+	h := newHarness(t, Options{})
+	loop := netip.MustParseAddr("127.0.0.1")
+	r1, r2 := h.m.TrackPeer(loop), h.m.TrackPeer(loop)
+	r1()
+	r1() // a second call of the same release must not decrement again
+	err := h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink())
+	expectLoopbackRefused(t, h, err)
+	r2()
+	if err := h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink()); err != nil {
+		t.Fatalf("Attach after every loopback peer released: %v", err)
+	}
+}
+
+func TestLoopbackPeerTrackConcurrentWithAttach(t *testing.T) {
+	h := newHarness(t, Options{})
+	loop := netip.MustParseAddr("127.0.0.1")
+	var wg sync.WaitGroup
+	for i := 0; i < 16; i++ {
+		wg.Add(2)
+		go func() {
+			defer wg.Done()
+			h.m.TrackPeer(loop)()
+		}()
+		go func(i int) {
+			defer wg.Done()
+			_ = h.m.Attach(fmt.Sprintf("s%d", i), params("10.77.0.2/24", "10.77.0.1", 0), newSink())
+		}(i)
+	}
+	wg.Wait()
+	for i := 0; i < 16; i++ {
+		h.m.Detach(fmt.Sprintf("s%d", i))
+	}
+	if err := h.m.Attach("final", params("10.77.0.2/24", "10.77.0.1", 0), newSink()); err != nil {
+		t.Fatalf("counter leaked after concurrent track/release: %v", err)
+	}
+}
+
+func TestStandbyLoopbackSessionRefusedWhileRemoteActive(t *testing.T) {
+	h := newHarness(t, Options{})
+	h.m.TrackPeer(netip.MustParseAddr("203.0.113.5"))
+	if err := h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink()); err != nil {
+		t.Fatalf("Attach A: %v", err)
+	}
+	h.nc.take()
+	h.m.TrackPeer(netip.MustParseAddr("127.0.0.1"))
+	err := h.m.Attach("B", params("10.77.0.2/24", "10.77.0.1", 0), newSink())
+	if err == nil || !strings.Contains(err.Error(), "full tunnel to a server on this host") {
+		t.Fatalf("standby Attach error = %v; want a full-tunnel-on-this-host refusal", err)
+	}
+	h.m.Detach("A")
+	if st := h.m.Status(); st.Active {
+		t.Fatal("loopback session became active after the remote session detached")
+	}
+}
+
+func TestRefusedReattachKeepsActiveSessionDetachable(t *testing.T) {
+	h := newHarness(t, Options{})
+	h.m.TrackPeer(netip.MustParseAddr("203.0.113.5"))
+	if err := h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink()); err != nil {
+		t.Fatalf("Attach A: %v", err)
+	}
+	h.nc.take()
+	h.m.TrackPeer(netip.MustParseAddr("127.0.0.1"))
+	if err := h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink()); err == nil {
+		t.Fatal("re-Attach with a loopback server and a full tunnel was accepted")
+	}
+	h.m.Detach("A")
+	if st := h.m.Status(); st.Active {
+		t.Fatal("adapter still active after Detach of the only session")
+	}
+	removed := false
+	for _, c := range h.nc.take() {
+		if strings.HasPrefix(c, "route- ") {
+			removed = true
+		}
+	}
+	if !removed {
+		t.Fatal("adapter routes were not removed after Detach")
+	}
+}
+
 func TestDNSOverrideAndDeviceErrors(t *testing.T) {
 	h := newHarness(t, Options{DNS: []netip.Addr{netip.MustParseAddr("1.1.1.1")}})
 	if err := h.m.Attach("A", params("10.77.0.2/24", "10.77.0.1", 0), newSink()); err != nil {

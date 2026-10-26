@@ -31,7 +31,7 @@ var LastHTTPAddr string
 // This design keeps TLS termination and HTTP parsing at the client side for
 // HTTPS tunnels; plain-HTTP tunnels are fully relayed at the TCP level.
 func StartHTTPProxy(ctx context.Context, addr string, mgr *Manager, ctrlConns *ControlConnRegistry, dataAddr string, log *slog.Logger, lim ...*Limiter) error {
-	ln, err := net.Listen("tcp", addr)
+	ln, err := listenTCP(addr)
 	if err != nil {
 		return fmt.Errorf("http proxy: listen %s: %w", addr, err)
 	}

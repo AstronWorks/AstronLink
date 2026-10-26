@@ -30,7 +30,7 @@ var LastHTTPSAddr string
 // TLS is NOT terminated at the proxy; the raw encrypted bytes are forwarded
 // to the client so TLS termination happens at the client's local service.
 func StartHTTPSProxy(ctx context.Context, addr string, mgr *Manager, ctrlConns *ControlConnRegistry, dataAddr string, log *slog.Logger, lim ...*Limiter) error {
-	ln, err := net.Listen("tcp", addr)
+	ln, err := listenTCP(addr)
 	if err != nil {
 		return fmt.Errorf("https proxy: listen %s: %w", addr, err)
 	}

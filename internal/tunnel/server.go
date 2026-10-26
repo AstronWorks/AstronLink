@@ -18,7 +18,7 @@ import (
 // matching pendingConn and fulfils it so the relay can proceed.
 // Returns the actual bound address (useful when addr uses port :0) and any error.
 func StartDataListener(ctx context.Context, addr string, mgr *Manager, log *slog.Logger) (string, error) {
-	ln, err := net.Listen("tcp", addr)
+	ln, err := listenTCP(addr)
 	if err != nil {
 		return "", err
 	}
