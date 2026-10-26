@@ -190,8 +190,7 @@ type ClientConfig struct {
 	// proxy listener (default "127.0.0.1:8080").  Set to "" to disable.
 	// Use HTTPS_PROXY=http://127.0.0.1:8080 to route traffic through this proxy.
 	HTTPProxyAddr string `yaml:"http_proxy_addr"`
-	// HTTPProxyUser/HTTPProxyPass enable HTTP Basic proxy authentication on the
-	// HTTP CONNECT listener (empty = no auth). Required when binding non-loopback.
+	// HTTPProxyUser/HTTPProxyPass are accepted in the config file but not applied: the HTTP CONNECT listener does no authentication.
 	HTTPProxyUser string `yaml:"http_proxy_user"`
 	HTTPProxyPass string `yaml:"http_proxy_pass"`
 
