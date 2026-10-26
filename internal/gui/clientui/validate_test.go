@@ -3,7 +3,7 @@ package clientui
 import (
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/config"
 )
 
 func validConfig() *config.ClientConfig {

@@ -30,9 +30,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // LastSOCKSAddr is set by StartSOCKSProxy to the actual bound address.

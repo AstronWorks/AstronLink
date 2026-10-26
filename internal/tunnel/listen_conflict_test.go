@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/logger"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/logger"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // listenerStarters maps each server listener to a function that starts it on addr.

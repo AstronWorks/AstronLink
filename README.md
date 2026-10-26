@@ -245,8 +245,8 @@ irm https://raw.githubusercontent.com/AstronWorks/AstronLink/master/scripts/inst
 **go install**
 
 ```bash
-go install github.com/EcoKG/reversproxy/cmd/server@latest
-go install github.com/EcoKG/reversproxy/cmd/client@latest
+go install github.com/AstronWorks/AstronLink/cmd/server@latest
+go install github.com/AstronWorks/AstronLink/cmd/client@latest
 ```
 
 </details>
@@ -439,10 +439,10 @@ scripts/         빌드·설치 스크립트
 ## 알려진 제한
 
 - **`wintun.dll` 은 릴리스에 포함되지 않습니다.** 릴리스 워크플로(`.github/workflows/release.yml`)는 실행 파일 7종만 올립니다. Windows VPN 모드를 쓰려면 [wintun.net](https://www.wintun.net) 의 `wintun.dll` 을 실행 파일 옆에 따로 두어야 합니다. `scripts/install-client.ps1` 은 서명을 확인한 뒤 자동으로 내려받습니다.
-- **Go 모듈 경로는 현재 `github.com/EcoKG/reversproxy` 입니다.** 저장소 주소(`AstronWorks/AstronLink`)와 다르므로 `go install`·`go get`·import 에는 아래 모듈 경로를 그대로 씁니다.
+- **Go 모듈 경로는 `github.com/AstronWorks/AstronLink` 이며 저장소 주소와 같습니다.** 이전 모듈 경로로 `go install`·`go get`·import 하던 경우 아래처럼 새 경로로 바꿔야 합니다.
 
 ```bash
-go install github.com/EcoKG/reversproxy/cmd/client@latest
+go install github.com/AstronWorks/AstronLink/cmd/client@latest
 ```
 
 ## 문서

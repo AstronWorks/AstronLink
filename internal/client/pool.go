@@ -6,9 +6,9 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
-	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/vpn/adapter"
 )
 
 // ControlWriter is the minimal write interface for a session's control

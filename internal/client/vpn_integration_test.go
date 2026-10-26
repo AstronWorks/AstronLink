@@ -14,14 +14,14 @@ import (
 	"golang.org/x/net/dns/dnsmessage"
 	"golang.zx2c4.com/wireguard/tun"
 
-	"github.com/EcoKG/reversproxy/internal/client"
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/control"
-	"github.com/EcoKG/reversproxy/internal/reconnect"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
-	"github.com/EcoKG/reversproxy/internal/vpn"
-	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
-	"github.com/EcoKG/reversproxy/internal/vpn/vpntest"
+	"github.com/AstronWorks/AstronLink/internal/client"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/control"
+	"github.com/AstronWorks/AstronLink/internal/reconnect"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/vpn/adapter"
+	"github.com/AstronWorks/AstronLink/internal/vpn/vpntest"
 )
 
 var quietLog = slog.New(slog.NewTextHandler(io.Discard, nil))

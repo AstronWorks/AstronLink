@@ -6,7 +6,7 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
 )
 
 // CtrlWriter serializes protocol message writes over the control connection.

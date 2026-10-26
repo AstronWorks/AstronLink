@@ -21,7 +21,7 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
-	"github.com/EcoKG/reversproxy/internal/gui"
+	"github.com/AstronWorks/AstronLink/internal/gui"
 )
 
 func TestPreview(t *testing.T) {

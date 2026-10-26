@@ -22,9 +22,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/control"
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/control"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // ---------------------------------------------------------------------------

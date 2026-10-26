@@ -8,8 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/EcoKG/reversproxy/internal/filetransfer"
-	"github.com/EcoKG/reversproxy/internal/logger"
+	"github.com/AstronWorks/AstronLink/internal/filetransfer"
+	"github.com/AstronWorks/AstronLink/internal/logger"
 )
 
 // dispatchSubcommands runs a non-flag subcommand if present and exits the

@@ -3,7 +3,7 @@ package clientui
 import (
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/config"
 )
 
 // demoBackend is an in-memory Backend for UI tests and previews.

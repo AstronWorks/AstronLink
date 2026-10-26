@@ -21,9 +21,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/control"
-	"github.com/EcoKG/reversproxy/internal/stats"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/control"
+	"github.com/AstronWorks/AstronLink/internal/stats"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 //go:embed ui/index.html ui/app.js ui/style.css

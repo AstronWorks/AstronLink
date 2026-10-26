@@ -10,9 +10,9 @@ import (
 	"gioui.org/layout"
 	"gioui.org/widget"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/gui"
-	"github.com/EcoKG/reversproxy/internal/gui/logview"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/gui"
+	"github.com/AstronWorks/AstronLink/internal/gui/logview"
 )
 
 // clientView merges a configured client target with its live connection.

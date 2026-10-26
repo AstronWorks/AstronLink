@@ -8,7 +8,7 @@
 ### 🔧 핵심 설정 파일
 | 파일 | 설명 |
 |------|------|
-| `go.mod` | Go 모듈 설정 파일 (github.com/EcoKG/reversproxy) |
+| `go.mod` | Go 모듈 설정 파일 (github.com/AstronWorks/AstronLink) |
 | `go.sum` | Go 의존성 체크섬 |
 | `Makefile` | 빌드 자동화 스크립트 |
 | `.gitignore` | Git 무시 파일 목록 |

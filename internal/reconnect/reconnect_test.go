@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/reconnect"
+	"github.com/AstronWorks/AstronLink/internal/reconnect"
 )
 
 // ---------------------------------------------------------------------------

@@ -4,7 +4,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
 )
 
 // CtrlConnWriter serialises ALL protocol writes to a single control connection.

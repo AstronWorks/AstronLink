@@ -11,7 +11,7 @@ import (
 	"gioui.org/widget"
 	"gioui.org/widget/material"
 
-	"github.com/EcoKG/reversproxy/internal/gui"
+	"github.com/AstronWorks/AstronLink/internal/gui"
 )
 
 const (

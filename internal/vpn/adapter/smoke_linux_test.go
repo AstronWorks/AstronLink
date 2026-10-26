@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
 )
 
 // TestRealTUNSmoke drives a real TUN adapter and the real iproute2

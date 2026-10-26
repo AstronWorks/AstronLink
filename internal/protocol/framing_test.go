@@ -8,7 +8,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
 )
 
 // TestFramingRoundtrip verifies that WriteMessage followed by ReadMessage
