@@ -3,174 +3,195 @@
 package main
 
 import (
+	"io"
+	"net"
 	"os"
-	"runtime"
+	"path/filepath"
 	"strings"
 	"sync"
-	"time"
 
-	"github.com/lxn/walk"
-	dec "github.com/lxn/walk/declarative"
+	"gioui.org/app"
+	"gioui.org/io/system"
+	"gioui.org/op"
+	"gioui.org/unit"
+	"golang.org/x/sys/windows"
+
+	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/EcoKG/reversproxy/internal/gui"
+	"github.com/EcoKG/reversproxy/internal/gui/clientui"
 )
 
-// Console window state. consoleMW is non-nil only while the window is open; it
-// is read from the tray thread (refreshConsole) so access is guarded.
-var (
-	consoleMu         sync.Mutex
-	consoleMW         *walk.MainWindow
-	consoleStatusEdit *walk.TextEdit
-	consoleLogEdit    *walk.TextEdit
-)
-
-// openConsole opens the management console window, or brings it to the front if
-// it is already open. The window runs on its own OS-locked thread because walk
-// requires UI-thread affinity.
-func openConsole() {
-	consoleMu.Lock()
-	mw := consoleMW
-	consoleMu.Unlock()
-	if mw != nil {
-		mw.Synchronize(func() { mw.Show() })
-		return
-	}
-	go runConsole()
+// console is the single management window; nil fields mean it is closed.
+var console struct {
+	mu  sync.Mutex
+	win *app.Window
+	ui  *clientui.UI
 }
 
-func runConsole() {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	var mw *walk.MainWindow
-	var statusEdit, logEdit *walk.TextEdit
-
-	decl := dec.MainWindow{
-		AssignTo: &mw,
-		Title:    "Reversproxy 관리 콘솔",
-		Size:     dec.Size{Width: 660, Height: 600},
-		MinSize:  dec.Size{Width: 460, Height: 400},
-		Layout:   dec.VBox{},
-		Children: []dec.Widget{
-			dec.GroupBox{
-				Title:  "상태",
-				Layout: dec.VBox{},
-				Children: []dec.Widget{
-					dec.TextEdit{
-						AssignTo: &statusEdit,
-						ReadOnly: true,
-						VScroll:  true,
-						Font:     dec.Font{Family: "Consolas", PointSize: 10},
-					},
-				},
-			},
-			dec.GroupBox{
-				Title:  "최근 로그",
-				Layout: dec.VBox{},
-				Children: []dec.Widget{
-					dec.TextEdit{
-						AssignTo: &logEdit,
-						ReadOnly: true,
-						VScroll:  true,
-						HScroll:  true,
-						Font:     dec.Font{Family: "Consolas", PointSize: 9},
-					},
-				},
-			},
-			dec.Composite{
-				Layout: dec.HBox{},
-				Children: []dec.Widget{
-					dec.PushButton{Text: "새로고침", OnClicked: func() { refreshConsoleWidgets(statusEdit, logEdit) }},
-					dec.PushButton{Text: "재연결", OnClicked: func() { reconnectTunnel() }},
-					dec.PushButton{Text: "설정", OnClicked: func() { openSettingsDialog() }},
-					dec.PushButton{Text: "설정 파일 열기", OnClicked: func() { openConfigFile(configPath) }},
-					dec.HSpacer{},
-					dec.PushButton{Text: "닫기", OnClicked: func() {
-						if mw != nil {
-							mw.Close()
-						}
-					}},
-				},
-			},
-		},
-	}
-
-	if err := decl.Create(); err != nil {
-		showError("Reversproxy", "콘솔 창 생성 실패:\n"+err.Error())
+// openConsole shows the console on page p, creating the window if needed.
+func openConsole(p clientui.Page) {
+	console.mu.Lock()
+	if console.win != nil {
+		w, u := console.win, console.ui
+		console.mu.Unlock()
+		u.Show(p)
+		w.Perform(system.ActionRaise)
+		w.Invalidate()
 		return
 	}
+	u := clientui.New(gui.NewTheme(prefDark()), backend{})
+	u.OnTheme = setPrefDark
+	u.Show(p)
+	w := new(app.Window)
+	console.win, console.ui = w, u
+	console.mu.Unlock()
+	go runConsole(w, u)
+}
 
-	consoleMu.Lock()
-	consoleMW = mw
-	consoleStatusEdit = statusEdit
-	consoleLogEdit = logEdit
-	consoleMu.Unlock()
+func runConsole(w *app.Window, u *clientui.UI) {
+	defer func() {
+		console.mu.Lock()
+		if console.win == w {
+			console.win, console.ui = nil, nil
+		}
+		console.mu.Unlock()
+	}()
+	defer recoverLog("console")
+	w.Option(
+		app.Title("Astron Link Client"),
+		app.Size(unit.Dp(1240), unit.Dp(800)),
+		app.MinSize(unit.Dp(980), unit.Dp(640)),
+	)
+	var ops op.Ops
+	for {
+		switch e := w.Event().(type) {
+		case app.DestroyEvent:
+			return
+		case app.FrameEvent:
+			gtx := app.NewContext(&ops, e)
+			u.Layout(gtx)
+			e.Frame(gtx.Ops)
+		}
+	}
+}
 
-	refreshConsoleWidgets(statusEdit, logEdit)
+func invalidateConsole() {
+	console.mu.Lock()
+	w := console.win
+	console.mu.Unlock()
+	if w != nil {
+		w.Invalidate()
+	}
+}
 
-	// Auto-refresh while open.
-	stop := make(chan struct{})
+func closeConsole() {
+	console.mu.Lock()
+	w := console.win
+	console.mu.Unlock()
+	if w != nil {
+		w.Perform(system.ActionClose)
+	}
+}
+
+// backend adapts the tray process to clientui.Backend.
+type backend struct{}
+
+func (backend) State() clientui.State { return snapshot() }
+
+func (backend) LoadConfig() (*config.ClientConfig, error) { return config.LoadClientConfig(configPath) }
+
+func (backend) SaveConfig(cfg *config.ClientConfig) error {
+	if err := saveConfig(configPath, cfg); err != nil {
+		return err
+	}
 	go func() {
-		t := time.NewTicker(2 * time.Second)
-		defer t.Stop()
-		for {
-			select {
-			case <-stop:
-				return
-			case <-t.C:
-				mw.Synchronize(func() { refreshConsoleWidgets(statusEdit, logEdit) })
-			}
+		defer recoverLog("save")
+		restartFileTransfer(cfg)
+		if isActive() {
+			restartConnection()
 		}
 	}()
-
-	mw.Show()
-	mw.Run() // blocks until the window is closed
-
-	close(stop)
-	consoleMu.Lock()
-	consoleMW = nil
-	consoleStatusEdit = nil
-	consoleLogEdit = nil
-	consoleMu.Unlock()
+	return nil
 }
 
-// refreshConsole is invoked from the tray thread (updateStatus). It posts a UI
-// update to the console window if it is open; otherwise it is a no-op.
-func refreshConsole() {
-	consoleMu.Lock()
-	mw := consoleMW
-	se := consoleStatusEdit
-	le := consoleLogEdit
-	consoleMu.Unlock()
-	if mw == nil {
-		return
-	}
-	mw.Synchronize(func() { refreshConsoleWidgets(se, le) })
+func (backend) Connect() {
+	go func() {
+		defer recoverLog("connect")
+		connect()
+	}()
 }
 
-// refreshConsoleWidgets re-renders the status and log panes. It must run on the
-// console's UI thread (via a button handler, Create, or mw.Synchronize).
-func refreshConsoleWidgets(statusEdit, logEdit *walk.TextEdit) {
-	if statusEdit != nil {
-		_ = statusEdit.SetText(status.snapshot().summary())
-	}
-	if logEdit != nil {
-		_, lp := status.paths()
-		_ = logEdit.SetText(tailFile(lp, 200))
-	}
-}
+func (backend) Disconnect() { disconnect() }
+func (backend) Reconnect()  { restartConnection() }
 
-// tailFile returns the last n lines of the file at path (best-effort).
-func tailFile(path string, n int) string {
-	if path == "" {
-		return "(로그 경로가 설정되지 않았습니다)"
-	}
-	data, err := os.ReadFile(path)
+func (backend) ReadLog(max int) ([]byte, error) {
+	f, err := os.Open(logPath)
 	if err != nil {
-		return "(로그를 읽을 수 없습니다: " + err.Error() + ")"
+		return nil, err
 	}
-	text := strings.ReplaceAll(string(data), "\r\n", "\n")
-	lines := strings.Split(strings.TrimRight(text, "\n"), "\n")
-	if len(lines) > n {
-		lines = lines[len(lines)-n:]
+	defer f.Close()
+	fi, err := f.Stat()
+	if err != nil {
+		return nil, err
 	}
-	return strings.Join(lines, "\r\n")
+	if off := fi.Size() - int64(max); off > 0 {
+		if _, err := f.Seek(off, io.SeekStart); err != nil {
+			return nil, err
+		}
+	}
+	return io.ReadAll(io.LimitReader(f, int64(max)))
+}
+
+func (backend) Autostart() bool { return isAutoStartEnabled() }
+
+func (backend) SetAutostart(on bool) error {
+	if err := setAutoStart(on); err != nil {
+		return err
+	}
+	syncAutostartItem(on)
+	return nil
+}
+
+func (backend) ContextMenu() bool            { return contextMenuRegistered() }
+func (backend) SetContextMenu(on bool) error { return setContextMenu(on) }
+func (backend) OpenDropFolder() error        { return openDropFolder() }
+
+func (backend) Info() clientui.Info {
+	_, err := os.Stat(filepath.Join(exeDir, "wintun.dll"))
+	return clientui.Info{
+		Version: Version, Commit: valOr(Commit, "unknown"), Built: valOr(BuildTime, "unknown"),
+		ConfigPath: configPath, LogPath: logPath,
+		LocalIPs: localIPv4s(), Admin: windows.GetCurrentProcessToken().IsElevated(), Wintun: err == nil,
+	}
+}
+
+// localIPv4s lists this PC's IPv4 addresses on up, non-loopback interfaces,
+// skipping link-local addresses and the VPN adapter.
+func localIPv4s() []string {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	var out []string
+	for _, ifc := range ifaces {
+		if ifc.Flags&net.FlagUp == 0 || ifc.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		if strings.EqualFold(ifc.Name, "AstronLink") || strings.Contains(strings.ToLower(ifc.Name), "wintun") {
+			continue
+		}
+		addrs, _ := ifc.Addrs()
+		for _, a := range addrs {
+			ipn, ok := a.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			ip := ipn.IP.To4()
+			if ip == nil || ip.IsLinkLocalUnicast() {
+				continue
+			}
+			out = append(out, ip.String())
+		}
+	}
+	return out
 }

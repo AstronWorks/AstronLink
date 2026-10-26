@@ -19,43 +19,43 @@ jobs:
             goos: windows
             goarch: amd64
             cgo: "0"
-            output: reversproxy-client-windows-amd64.exe
+            output: astronlink-client-windows-amd64.exe
             ldflags: "-H windowsgui -s -w"
           - cmd: winserver
             goos: windows
             goarch: amd64
             cgo: "0"
-            output: reversproxy-winserver-windows-amd64.exe
+            output: astronlink-server-windows-amd64.exe
             ldflags: "-H windowsgui -s -w"
           - cmd: client
             goos: linux
             goarch: amd64
             cgo: "0"
-            output: reversproxy-client-linux-amd64
+            output: astronlink-client-linux-amd64
             ldflags: "-s -w"
           - cmd: client
             goos: linux
             goarch: arm64
             cgo: "0"
-            output: reversproxy-client-linux-arm64
+            output: astronlink-client-linux-arm64
             ldflags: "-s -w"
           - cmd: server
             goos: linux
             goarch: amd64
             cgo: "0"
-            output: reversproxy-server-linux-amd64
+            output: astronlink-server-linux-amd64
             ldflags: "-s -w"
           - cmd: server
             goos: linux
             goarch: arm64
             cgo: "0"
-            output: reversproxy-server-linux-arm64
+            output: astronlink-server-linux-arm64
             ldflags: "-s -w"
           - cmd: server
             goos: windows
             goarch: amd64
             cgo: "0"
-            output: reversproxy-server-windows-amd64.exe
+            output: astronlink-server-cli-windows-amd64.exe
             ldflags: "-s -w"
 
     steps:
@@ -74,7 +74,7 @@ jobs:
           CGO_ENABLED: ${{ matrix.cgo }}
           CC: ${{ matrix.cc }}
         run: |
-          go build -ldflags "${{ matrix.ldflags }}" -o ${{ matrix.output }} ./cmd/${{ matrix.cmd }}
+          go build -trimpath -ldflags "${{ matrix.ldflags }} -X main.Version=${GITHUB_REF_NAME} -X main.Commit=${GITHUB_SHA::7} -X main.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o ${{ matrix.output }} ./cmd/${{ matrix.cmd }}
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -96,11 +96,11 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            reversproxy-client-windows-amd64.exe
-            reversproxy-winserver-windows-amd64.exe
-            reversproxy-client-linux-amd64
-            reversproxy-client-linux-arm64
-            reversproxy-server-linux-amd64
-            reversproxy-server-linux-arm64
-            reversproxy-server-windows-amd64.exe
+            astronlink-client-windows-amd64.exe
+            astronlink-server-windows-amd64.exe
+            astronlink-client-linux-amd64
+            astronlink-client-linux-arm64
+            astronlink-server-linux-amd64
+            astronlink-server-linux-arm64
+            astronlink-server-cli-windows-amd64.exe
           generate_release_notes: true

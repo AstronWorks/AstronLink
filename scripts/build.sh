@@ -1,11 +1,12 @@
 #!/usr/bin/env bash
-# reversproxy 서버/클라이언트를 Linux·Windows용으로 크로스컴파일합니다.
+# Astron Link 서버/클라이언트를 Linux·Windows용으로 크로스컴파일합니다.
 #
 # 산출물 (dist/ 아래, .gitignore 처리됨):
-#   dist/linux/reversproxy-server        Linux 서버       (CLI)
-#   dist/linux/reversproxy-client        Linux 클라이언트  (CLI,  cmd/client)
-#   dist/windows/reversproxy-server.exe  Windows 서버      (CLI)
-#   dist/windows/reversproxy-client.exe  Windows 클라이언트 (GUI 트레이, cmd/winclient)
+#   dist/linux/astronlink-server        Linux 서버       (CLI)
+#   dist/linux/astronlink-client        Linux 클라이언트  (CLI,  cmd/client)
+#   dist/windows/astronlink-server-cli.exe  Windows 서버      (CLI)
+#   dist/windows/astronlink-client.exe  Windows 클라이언트 (GUI 트레이, cmd/winclient)
+#   dist/windows/astronlink-server.exe  Windows 서버      (GUI 트레이, cmd/winserver)
 #
 # CGO 없이(순수 Go) 빌드하므로 C 컴파일러 없이 어떤 호스트에서도 양쪽 OS 바이너리를 만들 수 있습니다.
 #
@@ -47,27 +48,27 @@ build_one() {
 if [ "$TARGET_OS" = "all" ] || [ "$TARGET_OS" = "linux" ]; then
     mkdir -p dist/linux
     echo "Linux:"
-    build_one linux ./cmd/server dist/linux/reversproxy-server
-    build_one linux ./cmd/client dist/linux/reversproxy-client
+    build_one linux ./cmd/server dist/linux/astronlink-server
+    build_one linux ./cmd/client dist/linux/astronlink-client
     copy_configs dist/linux
 fi
 
 if [ "$TARGET_OS" = "all" ] || [ "$TARGET_OS" = "windows" ]; then
     mkdir -p dist/windows
     echo "Windows:"
-    build_one windows ./cmd/server    dist/windows/reversproxy-server.exe
-    build_one windows ./cmd/winclient dist/windows/reversproxy-client.exe '-s -w -H windowsgui'
-    build_one windows ./cmd/winserver dist/windows/reversproxy-winserver.exe '-s -w -H windowsgui'
+    build_one windows ./cmd/server    dist/windows/astronlink-server-cli.exe
+    build_one windows ./cmd/winclient dist/windows/astronlink-client.exe '-s -w -H windowsgui'
+    build_one windows ./cmd/winserver dist/windows/astronlink-server.exe '-s -w -H windowsgui'
     copy_configs dist/windows
 fi
 
 # GitHub-release-named copies (match install scripts / .github/workflows/release.yml).
 mkdir -p dist/release
-[ -f dist/linux/reversproxy-server ]       && cp -f dist/linux/reversproxy-server       "dist/release/reversproxy-server-linux-$ARCH"
-[ -f dist/linux/reversproxy-client ]       && cp -f dist/linux/reversproxy-client       "dist/release/reversproxy-client-linux-$ARCH"
-[ -f dist/windows/reversproxy-server.exe ] && cp -f dist/windows/reversproxy-server.exe "dist/release/reversproxy-server-windows-$ARCH.exe"
-[ -f dist/windows/reversproxy-client.exe ] && cp -f dist/windows/reversproxy-client.exe "dist/release/reversproxy-client-windows-$ARCH.exe"
-[ -f dist/windows/reversproxy-winserver.exe ] && cp -f dist/windows/reversproxy-winserver.exe "dist/release/reversproxy-winserver-windows-$ARCH.exe"
+[ -f dist/linux/astronlink-server ]       && cp -f dist/linux/astronlink-server       "dist/release/astronlink-server-linux-$ARCH"
+[ -f dist/linux/astronlink-client ]       && cp -f dist/linux/astronlink-client       "dist/release/astronlink-client-linux-$ARCH"
+[ -f dist/windows/astronlink-server-cli.exe ] && cp -f dist/windows/astronlink-server-cli.exe "dist/release/astronlink-server-cli-windows-$ARCH.exe"
+[ -f dist/windows/astronlink-client.exe ] && cp -f dist/windows/astronlink-client.exe "dist/release/astronlink-client-windows-$ARCH.exe"
+[ -f dist/windows/astronlink-server.exe ] && cp -f dist/windows/astronlink-server.exe "dist/release/astronlink-server-windows-$ARCH.exe"
 
 echo
 echo "완료. 산출물: $ROOT/dist"

@@ -16,7 +16,7 @@ case "$ARCH" in
 esac
 
 # Download
-URL="https://github.com/$REPO/releases/latest/download/reversproxy-client-linux-$ARCH"
+URL="https://github.com/$REPO/releases/latest/download/astronlink-client-linux-$ARCH"
 mkdir -p "$INSTALL_DIR"
 echo "==> Downloading $URL"
 curl -fsSL -o "$BIN" "$URL"

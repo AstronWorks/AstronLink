@@ -4,10 +4,10 @@
 
 .DESCRIPTION
   산출물 (dist/ 아래, .gitignore 처리됨):
-    dist/linux/reversproxy-server        Linux 서버   (CLI)
-    dist/linux/reversproxy-client        Linux 클라이언트 (CLI,  cmd/client)
-    dist/windows/reversproxy-server.exe  Windows 서버 (CLI)
-    dist/windows/reversproxy-client.exe  Windows 클라이언트 (GUI 트레이, cmd/winclient)
+    dist/linux/astronlink-server        Linux 서버   (CLI)
+    dist/linux/astronlink-client        Linux 클라이언트 (CLI,  cmd/client)
+    dist/windows/astronlink-server-cli.exe  Windows 서버 (CLI)
+    dist/windows/astronlink-client.exe  Windows 클라이언트 (GUI 트레이, cmd/winclient)
 
   CGO 없이(순수 Go) 빌드하므로 C 컴파일러가 필요 없으며, 어떤 호스트에서도
   양쪽 OS 바이너리를 만들 수 있습니다.
@@ -63,8 +63,8 @@ try {
         $d = Join-Path $root 'dist/linux'
         New-Item -ItemType Directory -Force -Path $d | Out-Null
         Write-Host 'Linux:' -ForegroundColor Green
-        Build-One 'linux' $Arch './cmd/server' (Join-Path $d 'reversproxy-server')
-        Build-One 'linux' $Arch './cmd/client' (Join-Path $d 'reversproxy-client')
+        Build-One 'linux' $Arch './cmd/server' (Join-Path $d 'astronlink-server')
+        Build-One 'linux' $Arch './cmd/client' (Join-Path $d 'astronlink-client')
         Copy-Configs $d
     }
 
@@ -72,9 +72,9 @@ try {
         $d = Join-Path $root 'dist/windows'
         New-Item -ItemType Directory -Force -Path $d | Out-Null
         Write-Host 'Windows:' -ForegroundColor Green
-        Build-One 'windows' $Arch './cmd/server'    (Join-Path $d 'reversproxy-server.exe')
-        Build-One 'windows' $Arch './cmd/winclient' (Join-Path $d 'reversproxy-client.exe') '-s -w -H windowsgui'
-        Build-One 'windows' $Arch './cmd/winserver' (Join-Path $d 'reversproxy-winserver.exe') '-s -w -H windowsgui'
+        Build-One 'windows' $Arch './cmd/server'    (Join-Path $d 'astronlink-server-cli.exe')
+        Build-One 'windows' $Arch './cmd/winclient' (Join-Path $d 'astronlink-client.exe') '-s -w -H windowsgui'
+        Build-One 'windows' $Arch './cmd/winserver' (Join-Path $d 'astronlink-server.exe') '-s -w -H windowsgui'
         Copy-Configs $d
     }
 
@@ -82,11 +82,11 @@ try {
     $rel = Join-Path $root 'dist/release'
     New-Item -ItemType Directory -Force -Path $rel | Out-Null
     $pairs = @(
-        @{ src = "dist/linux/reversproxy-server";       dst = "reversproxy-server-linux-$Arch" },
-        @{ src = "dist/linux/reversproxy-client";       dst = "reversproxy-client-linux-$Arch" },
-        @{ src = "dist/windows/reversproxy-server.exe";   dst = "reversproxy-server-windows-$Arch.exe" },
-        @{ src = "dist/windows/reversproxy-client.exe";   dst = "reversproxy-client-windows-$Arch.exe" },
-        @{ src = "dist/windows/reversproxy-winserver.exe"; dst = "reversproxy-winserver-windows-$Arch.exe" }
+        @{ src = "dist/linux/astronlink-server";       dst = "astronlink-server-linux-$Arch" },
+        @{ src = "dist/linux/astronlink-client";       dst = "astronlink-client-linux-$Arch" },
+        @{ src = "dist/windows/astronlink-server-cli.exe";   dst = "astronlink-server-cli-windows-$Arch.exe" },
+        @{ src = "dist/windows/astronlink-client.exe";   dst = "astronlink-client-windows-$Arch.exe" },
+        @{ src = "dist/windows/astronlink-server.exe"; dst = "astronlink-server-windows-$Arch.exe" }
     )
     foreach ($p in $pairs) {
         $s = Join-Path $root $p.src

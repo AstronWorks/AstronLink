@@ -15,12 +15,12 @@ import (
 )
 
 const (
-	defaultInterfaceName = "Reversproxy"
+	defaultInterfaceName = "AstronLink"
 	privilegeHint        = "creating the Wintun adapter requires Administrator rights and wintun.dll (https://www.wintun.net) next to the executable"
 )
 
 func init() {
-	tun.WintunTunnelType = "Reversproxy"
+	tun.WintunTunnelType = "AstronLink"
 }
 
 // newPlatformDevice creates a Wintun adapter. The adapter GUID is derived from
