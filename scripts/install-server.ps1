@@ -30,7 +30,7 @@ try {
     $Version = $Release.tag_name
 } catch {
     Write-Host "==> Could not fetch latest release, using direct URL" -ForegroundColor Yellow
-    $DownloadUrl = "https://github.com/$Repo/releases/latest/download/reversproxy-server-windows-amd64.exe"
+    $DownloadUrl = "https://github.com/$Repo/releases/latest/download/astronlink-server-cli-windows-amd64.exe"
     $Version = "latest"
 }
 

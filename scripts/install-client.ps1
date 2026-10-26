@@ -17,7 +17,7 @@ $BinaryName = "reversproxy-client.exe"
 $BinaryPath = Join-Path $InstallDir $BinaryName
 $ConfigPath = Join-Path $InstallDir "config.yaml"
 
-Write-Host "==> reversproxy GUI 클라이언트 설치 (Windows)" -ForegroundColor Cyan
+Write-Host "==> Astron Link 클라이언트 설치 (Windows)" -ForegroundColor Cyan
 
 New-Item -ItemType Directory -Force -Path $InstallDir | Out-Null
 
@@ -30,7 +30,7 @@ try {
     $Version = $Release.tag_name
 } catch {
     Write-Host "==> 릴리스 조회 실패, 직접 URL 사용" -ForegroundColor Yellow
-    $DownloadUrl = "https://github.com/$Repo/releases/latest/download/reversproxy-client-windows-amd64.exe"
+    $DownloadUrl = "https://github.com/$Repo/releases/latest/download/astronlink-client-windows-amd64.exe"
     $Version = "latest"
 }
 Write-Host "==> 다운로드 $Version : $DownloadUrl"
@@ -94,7 +94,8 @@ vpn:
 
 # 로그온 시 자동 시작 (HKCU Run — 관리자 권한 불필요).
 $runKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-Set-ItemProperty -Path $runKey -Name "Reversproxy" -Value "`"$BinaryPath`""
+Set-ItemProperty -Path $runKey -Name "AstronLinkClient" -Value "`"$BinaryPath`""
+Remove-ItemProperty -Path $runKey -Name "Reversproxy" -ErrorAction SilentlyContinue
 
 # 탐색기 우클릭 "파일 전송" 메뉴 등록.
 Write-Host "==> 우클릭 메뉴 등록"
@@ -109,6 +110,6 @@ Write-Host "==> 설치 완료!" -ForegroundColor Green
 Write-Host ""
 Write-Host "    설정 편집:   notepad `"$ConfigPath`""
 Write-Host "    트레이 메뉴:  연결 / 수신함 열기 / 우클릭 메뉴 등록·해제"
-Write-Host "    파일 전송:    탐색기에서 파일 우클릭 → 'Reversproxy로 파일 전송'"
+Write-Host "    파일 전송:    탐색기에서 파일 우클릭 → 'Astron Link로 파일 전송'"
 Write-Host "                 (Windows 11은 '추가 옵션 표시' 안에 표시)"
 Write-Host ""

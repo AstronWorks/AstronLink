@@ -1,8 +1,9 @@
 # 빌드 매트릭스
 #                Linux                         Windows
-#   server   dist/linux/reversproxy-server     dist/windows/reversproxy-server.exe   (둘 다 CLI)
-#   client   dist/linux/reversproxy-client     dist/windows/reversproxy-client.exe
-#            (CLI, cmd/client)                  (GUI 트레이, cmd/winclient)
+#   server   dist/linux/astronlink-server     dist/windows/astronlink-server-cli.exe (CLI)
+#                                              dist/windows/astronlink-server.exe     (GUI 트레이, cmd/winserver)
+#   client   dist/linux/astronlink-client     dist/windows/astronlink-client.exe     (GUI 트레이, cmd/winclient)
+#            (CLI, cmd/client)
 #
 # CGO 없이(순수 Go) 빌드하므로 C 컴파일러 없이 양쪽 OS를 크로스컴파일할 수 있습니다.
 
@@ -43,26 +44,26 @@ dist-windows: server-windows client-windows winserver-windows
 
 server-linux:
 	@mkdir -p dist/linux
-	GOOS=linux GOARCH=$(ARCH) $(GOBUILD) -o dist/linux/reversproxy-server ./cmd/server
+	GOOS=linux GOARCH=$(ARCH) $(GOBUILD) -o dist/linux/astronlink-server ./cmd/server
 
 client-linux:
 	@mkdir -p dist/linux
-	GOOS=linux GOARCH=$(ARCH) $(GOBUILD) -o dist/linux/reversproxy-client ./cmd/client
+	GOOS=linux GOARCH=$(ARCH) $(GOBUILD) -o dist/linux/astronlink-client ./cmd/client
 
 server-windows:
 	@mkdir -p dist/windows
-	GOOS=windows GOARCH=$(ARCH) $(GOBUILD) -o dist/windows/reversproxy-server.exe ./cmd/server
+	GOOS=windows GOARCH=$(ARCH) $(GOBUILD) -o dist/windows/astronlink-server-cli.exe ./cmd/server
 
 # Windows 클라이언트는 GUI 시스템 트레이 버전(cmd/winclient)입니다.
 # -H windowsgui: 실행 시 콘솔 창이 뜨지 않게 한다.
 client-windows:
 	@mkdir -p dist/windows
-	GOOS=windows GOARCH=$(ARCH) CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS) -H windowsgui' -o dist/windows/reversproxy-client.exe ./cmd/winclient
+	GOOS=windows GOARCH=$(ARCH) CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS) -H windowsgui' -o dist/windows/astronlink-client.exe ./cmd/winclient
 
-# Windows 서버 GUI(cmd/winserver) — 트레이 + 네이티브 관리 콘솔(lxn/walk). -H windowsgui.
+# Windows 서버 GUI(cmd/winserver) — 트레이 + 관리 콘솔(Gio). -H windowsgui.
 winserver-windows:
 	@mkdir -p dist/windows
-	GOOS=windows GOARCH=$(ARCH) CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS) -H windowsgui' -o dist/windows/reversproxy-winserver.exe ./cmd/winserver
+	GOOS=windows GOARCH=$(ARCH) CGO_ENABLED=0 go build -trimpath -ldflags '$(LDFLAGS) -H windowsgui' -o dist/windows/astronlink-server.exe ./cmd/winserver
 
 clean:
 	rm -rf dist
