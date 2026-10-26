@@ -4,8 +4,8 @@
 새 와이어 프로토콜 없이, 각 피어가 로컬에 작은 HTTP 수신 엔드포인트를 띄우고 그것을 터널로
 노출하는 방식이며, 전송은 **청크 업로드 + SHA-256 무결성 검증 + 중간 끊김 시 재개**를 지원합니다.
 
-- **윈도우**: 탐색기에서 파일 우클릭 → "Reversproxy로 파일 전송" → 상대 거점의 드롭 폴더로 전송, 트레이 알림.
-- **리눅스/CLI**: `reversproxy-client send` 서브커맨드로 전송, 수신은 드롭 폴더에 자동 저장.
+- **윈도우**: 탐색기에서 파일 우클릭 → "Astron Link로 파일 전송" → 상대 거점의 드롭 폴더로 전송, 트레이 알림.
+- **리눅스/CLI**: `astronlink-client send` 서브커맨드로 전송, 수신은 드롭 폴더에 자동 저장.
 
 > 디렉터리(폴더) 전송은 아직 미지원입니다 — 먼저 zip으로 묶어 단일 파일로 보내십시오.
 
@@ -91,11 +91,11 @@ file_transfer:
 
 ## 3. 윈도우 우클릭 사용법
 
-1. `reversproxy-client.exe`(GUI 트레이)를 실행합니다. 위 `file_transfer` 설정이 있으면
+1. `astronlink-client.exe`(GUI 트레이)를 실행합니다. 위 `file_transfer` 설정이 있으면
    수신기와 로컬 IPC가 자동으로 뜹니다.
 2. 트레이 아이콘 → **"우클릭 메뉴 등록"** 클릭 (현재 사용자 레지스트리에만 등록 — 관리자 권한 불필요).
-   - Windows 11에서는 우클릭 후 **"추가 옵션 표시"** 안에 "Reversproxy로 파일 전송"이 나타납니다.
-3. 탐색기에서 파일 우클릭 → **"Reversproxy로 파일 전송"** → 상대 거점의 드롭 폴더로 전송됩니다.
+   - Windows 11에서는 우클릭 후 **"추가 옵션 표시"** 안에 "Astron Link로 파일 전송"이 나타납니다.
+3. 탐색기에서 파일 우클릭 → **"Astron Link로 파일 전송"** → 상대 거점의 드롭 폴더로 전송됩니다.
 4. 받은 파일은 트레이 → **"수신함 열기"**로 확인합니다. 도착 시 트레이 툴팁으로 알립니다.
 5. 제거하려면 트레이 → **"우클릭 메뉴 해제"**.
 
@@ -107,7 +107,7 @@ file_transfer:
 
 ```bash
 # 상대 거점의 수신 엔드포인트(터널 너머)를 -to 로 지정
-reversproxy-client send -to http://127.0.0.1:8090 -token ft-shared-secret ./report.pdf
+astronlink-client send -to http://127.0.0.1:8090 -token ft-shared-secret ./report.pdf
 ```
 
 `-to`는 이 호스트에서 **터널을 통해 상대 수신기에 닿는 주소**입니다(위 배선의 `send_endpoint`와 동일).

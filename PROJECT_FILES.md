@@ -1,7 +1,7 @@
 # 프로젝트 파일 목록 정리
 
 ## 프로젝트 개요
-**리버스 터널 프록시 (reversproxy)** - NAT/방화벽 뒤의 서비스를 외부에 노출하는 Go 기반 프로젝트
+**리버스 터널 프록시 (Astron Link)** - NAT/방화벽 뒤의 서비스를 외부에 노출하는 Go 기반 프로젝트
 
 ## 📁 디렉토리 구조
 
@@ -30,15 +30,15 @@
 |------|-------|------|
 | `client` | 현재 시스템 | 클라이언트 실행파일 |
 | `server` | 현재 시스템 | 서버 실행파일 |
-| `reversproxy-server` | 현재 시스템 | 서버 실행파일 |
+| `astronlink-server` | 현재 시스템 | 서버 실행파일 |
 
 ### 📁 배포 파일 (`dist/`)
 | 파일 | 설명 |
 |------|------|
-| `reversproxy-client` | 클라이언트 바이너리 |
-| `reversproxy-client-linux-amd64` | Linux x86_64 클라이언트 |
-| `reversproxy-client-linux-arm64` | Linux ARM64 클라이언트 (라즈베리파이) |
-| `reversproxy-server-windows-amd64.exe` | Windows x86_64 서버 |
+| `astronlink-client` | 클라이언트 바이너리 |
+| `astronlink-client-linux-amd64` | Linux x86_64 클라이언트 |
+| `astronlink-client-linux-arm64` | Linux ARM64 클라이언트 (라즈베리파이) |
+| `astronlink-server-cli-windows-amd64.exe` | Windows x86_64 서버 |
 | `install-client.sh` | Linux 클라이언트 설치 스크립트 |
 | `run-client.sh` | 클라이언트 실행 스크립트 |
 | `run-client.zip` | 클라이언트 실행 패키지 |

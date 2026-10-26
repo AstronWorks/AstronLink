@@ -53,6 +53,23 @@
 | `mtu` | int | `1500` | 가상 링크 MTU (576 – 65535) |
 | `dns` | list | `[]` | 클라이언트에 알려 줄 DNS. 비우면 게이트웨이 주소와 서버 내장 리졸버 |
 
+### 수신 주소 기본값과 포트 충돌
+
+서버가 여는 주소의 기본값입니다. 값은 코드의 기본값과 대조했고, 설치 스크립트가 만드는 `server.yaml` 과 `cmd/winserver` 가 첫 실행에 만드는 설정(`cmd/winserver/server.go:226` 이 `DefaultServerConfig` 를 사용)은 기본값과 같습니다.
+
+| 키 | 코드 기본값 | 근거 | 다른 곳의 값 |
+|----|-------------|------|--------------|
+| `data_addr` | `:8444` | `internal/config/config.go:118` | 같음 (`scripts/install-server.ps1:47`) |
+| `http_addr` | `:8080` | `internal/config/config.go:119` | 설치 스크립트는 같음(`scripts/install-server.ps1:48`), README 빠른 시작 예제는 `""`(끔, `README.md:185`) |
+| `https_addr` | `:8445` | `internal/config/config.go:120` | 설치 스크립트는 같음(`scripts/install-server.ps1:49`), README 빠른 시작 예제는 `""`(끔, `README.md:186`) |
+| `admin_addr` | `:9090` (호스트 생략 시 `127.0.0.1`) | `internal/config/config.go:121` | 같음 (`scripts/install-server.ps1:50`) |
+| `file_transfer.receive_addr` | `127.0.0.1:8089` | `internal/config/config.go:283` | — |
+| `file_transfer.control_addr` | `127.0.0.1:8077` | `internal/config/config.go:285` | — |
+
+클라이언트의 기본 리스너도 같은 번호를 쓸 수 있습니다: `listen_addr` `:8443`(`config.go:292`), `socks_addr` `127.0.0.1:1080`(`config.go:303`), `http_proxy_addr` `127.0.0.1:8080`(`config.go:304`). 서버의 `http_addr`(`:8080`)와 클라이언트의 `http_proxy_addr`(`127.0.0.1:8080`)는 기본값이 같은 번호이므로, 한 PC 에서 서버와 클라이언트를 함께 실행하면 둘 중 하나를 바꿔야 합니다.
+
+> **주의 — 같은 PC 의 다른 서비스와 포트가 겹치지 않게 지정하십시오.** `data_addr`·`http_addr`·`https_addr`·`admin_addr` 에 적은 포트를 같은 PC 의 다른 프로그램이 이미 쓰고 있으면 안 됩니다. 예를 들어 다른 서비스가 `0.0.0.0:8787` 을 쓰고 있다면 `http_addr` 를 `:8787` 로 지정하지 말고 다른 포트로 지정합니다. 리슨에 실패하면 현재 코드는 오류를 돌려주고, CLI 서버는 로그를 남긴 뒤 종료 코드 1 로 끝납니다(`cmd/server/main.go:168-171`). 설정을 정하기 전에 점검하는 방법은 [winserver 배포 가이드](winserver-deploy.md#배포-전-포트-확인)에 있습니다.
+
 ## 클라이언트 (`ClientConfig`)
 
 | 키 | 타입 | 기본값 | 설명 |
@@ -94,7 +111,7 @@
 | 키 | 타입 | 기본값 | 설명 |
 |----|------|--------|------|
 | `enabled` | bool | `false` | VPN 모드 사용 (어댑터 생성에 관리자/root 권한 필요) |
-| `interface_name` | string | `""` | 어댑터 이름. 비우면 Linux `rproxy0`, Windows `Reversproxy` |
+| `interface_name` | string | `""` | 어댑터 이름. 비우면 Linux `rproxy0`, Windows `AstronLink` |
 | `routes` | list | `[]` | 어댑터로 보낼 CIDR. 비우면 전체 터널(`0.0.0.0/1` + `128.0.0.0/1`). 주소만 쓰면 호스트 경로 |
 | `bypass` | list | `[]` | 항상 물리 네트워크로 보낼 CIDR. 접속한 서버 주소는 자동으로 추가 |
 | `dns` | list | `[]` | 서버가 알려 준 DNS 대신 사용할 서버 |
@@ -132,7 +149,7 @@
 | `--http-host` + `--http-port` | 둘 다 있으면 HTTP 터널 추가 |
 | `--https-host` + `--https-port` | 둘 다 있으면 HTTPS 터널 추가 |
 
-클라이언트에는 파일 전송 서브커맨드 `reversproxy-client send` 가 있습니다([FILE_TRANSFER.md](../FILE_TRANSFER.md)).
+클라이언트에는 파일 전송 서브커맨드 `astronlink-client send` 가 있습니다([FILE_TRANSFER.md](../FILE_TRANSFER.md)).
 
 ## 컴파일 타임 상수
 

@@ -89,7 +89,7 @@ allow_private_targets: false  # VPN 출구에도 동일한 SSRF 가드 적용
 ```yaml
 vpn:
   enabled: true
-  interface_name: ""       # 기본: Linux "rproxy0", Windows "Reversproxy"
+  interface_name: ""       # 기본: Linux "rproxy0", Windows "AstronLink"
   routes: []               # 비우면 전체 터널. 예: ["10.0.0.0/8", "203.0.113.0/24"]
   bypass: []               # 항상 물리 네트워크로 보낼 대역
   dns: []                  # 서버 푸시 DNS 덮어쓰기

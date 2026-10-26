@@ -1,12 +1,14 @@
 <p align="center">
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset="docs/assets/banner-dark.svg">
-    <img src="docs/assets/banner-light.svg" alt="reversproxy — Reverse-dial tunnel proxy with a VPN mode" width="820">
+    <img src="docs/assets/banner-light.svg" alt="Astron Link — Reverse-dial tunnel proxy with a VPN mode" width="820">
   </picture>
 </p>
 
 <p align="center">
-  <img src="docs/assets/badges/go.svg" alt="Go 1.23.1+">
+  <a href="https://github.com/AstronWorks/AstronLink/actions/workflows/release.yml"><img src="https://github.com/AstronWorks/AstronLink/actions/workflows/release.yml/badge.svg" alt="Release workflow status"></a>
+  <a href="https://github.com/AstronWorks/AstronLink/releases/latest"><img src="https://img.shields.io/github/v/release/AstronWorks/AstronLink" alt="Latest release"></a>
+  <img src="https://img.shields.io/github/go-mod/go-version/AstronWorks/AstronLink" alt="Go version from go.mod">
   <img src="docs/assets/badges/platform.svg" alt="Platform: Linux | Windows">
   <img src="docs/assets/badges/cgo.svg" alt="CGO not required">
   <img src="docs/assets/badges/tls.svg" alt="TLS 1.3 only">
@@ -39,6 +41,7 @@
 - [성능 측정](#성능-측정)
 - [빌드와 테스트](#빌드와-테스트)
 - [프로젝트 구조](#프로젝트-구조)
+- [알려진 제한](#알려진-제한)
 - [문서](#문서)
 - [라이선스](#라이선스)
 
@@ -134,22 +137,30 @@ sequenceDiagram
 ## 화면
 
 <p align="center">
-  <img src="docs/assets/dashboard.png" alt="서버 웹 대시보드: 승인 대기, 요약, 클라이언트, 터널" width="820">
+  <img src="docs/assets/console-server.png" alt="Astron Link Server 관리 콘솔: 개요, 리스너, 클라이언트 연결, 보안·VPN" width="820">
 </p>
 
-서버 웹 대시보드의 실제 실행 화면입니다. 단일 호스트에서 클라이언트 2대를 띄우고 1대만 승인한 상태로 2026-10-26 에 캡처했습니다. 수신·송신 바이트는 현재 집계 경로가 연결되어 있지 않아 0 으로 표시됩니다([관리 API와 대시보드](#관리-api와-대시보드) 참고).
+<p align="center">
+  <img src="docs/assets/console-client.png" alt="Astron Link Client 관리 콘솔: 연결 상태, 서버 연결, 로컬 프록시, VPN" width="820">
+</p>
+
+<p align="center">
+  <img src="docs/assets/dashboard.png" alt="서버 웹 대시보드: 요약, 클라이언트, 터널" width="820">
+</p>
+
+Windows 에서 실제로 실행한 화면입니다. 위 두 장은 `cmd/winserver`·`cmd/winclient` 의 관리 콘솔이고, 아래는 서버에 임베드된 웹 대시보드입니다. 한 PC 에서 서버 1대와 클라이언트 1대(`demo-client`)를 루프백으로 연결해 2026-10-26 에 캡처했고, 클라이언트 PC 의 IP 주소는 가렸습니다. 대시보드의 수신·송신 바이트는 현재 집계 경로가 연결되어 있지 않아 0 으로 표시됩니다([관리 API와 대시보드](#관리-api와-대시보드) 참고).
 
 ## 빠른 시작
 
-한 대의 Linux 머신에서 로컬 서비스(`127.0.0.1:8000`)를 서버 공개 포트 `9000` 으로 노출해 봅니다. Go 1.23.1 이상, `openssl`, `curl`, `python3` 가 필요합니다.
+한 대의 Linux 머신에서 로컬 서비스(`127.0.0.1:8000`)를 서버 공개 포트 `9000` 으로 노출해 봅니다. Go 1.24 이상, `openssl`, `curl`, `python3` 가 필요합니다.
 
 **1. 빌드**
 
 ```bash
-git clone https://github.com/AstronWorks/reversproxy.git
-cd reversproxy
-go build -o reversproxy-server ./cmd/server
-go build -o reversproxy-client ./cmd/client
+git clone https://github.com/AstronWorks/AstronLink.git
+cd AstronLink
+go build -o astronlink-server ./cmd/server
+go build -o astronlink-client ./cmd/client
 ```
 
 **2. 설정** — 양쪽 `auth_token` 은 같아야 합니다.
@@ -183,8 +194,8 @@ EOF
 
 ```bash
 python3 -m http.server 8000 --bind 127.0.0.1           # 노출할 로컬 서비스
-./reversproxy-client --config client.yaml              # 클라이언트: 리슨하며 대기
-./reversproxy-server --config server.yaml              # 서버: 클라이언트로 다이얼
+./astronlink-client --config client.yaml              # 클라이언트: 리슨하며 대기
+./astronlink-server --config server.yaml              # 서버: 클라이언트로 다이얼
 ```
 
 **4. 승인과 확인** — 처음 보는 클라이언트는 승인 전까지 차단됩니다.
@@ -198,37 +209,37 @@ curl -s -o /dev/null -w "%{http_code}\n" http://127.0.0.1:9000/    # 200
 
 ## 설치
 
-릴리스 워크플로(`.github/workflows/release.yml`)가 `v*` 태그마다 아래 7종을 크로스 컴파일(CGO 없음)해 [Releases](https://github.com/AstronWorks/reversproxy/releases/latest) 에 올립니다.
+릴리스 워크플로(`.github/workflows/release.yml`)가 `v*` 태그마다 아래 7종을 크로스 컴파일(CGO 없음)해 [Releases](https://github.com/AstronWorks/AstronLink/releases/latest) 에 올립니다.
 
 | 파일 | 대상 | 형태 |
 |------|------|------|
-| `reversproxy-client-linux-amd64` | Linux 클라이언트 | CLI (`cmd/client`) |
-| `reversproxy-client-linux-arm64` | Linux 클라이언트 | CLI (`cmd/client`) |
-| `reversproxy-client-windows-amd64.exe` | Windows 클라이언트 | 트레이 GUI (`cmd/winclient`) |
-| `reversproxy-server-linux-amd64` | Linux 서버 | CLI (`cmd/server`) |
-| `reversproxy-server-linux-arm64` | Linux 서버 | CLI (`cmd/server`) |
-| `reversproxy-server-windows-amd64.exe` | Windows 서버 | CLI (`cmd/server`) |
-| `reversproxy-winserver-windows-amd64.exe` | Windows 서버 | 트레이 GUI (`cmd/winserver`) |
+| `astronlink-client-linux-amd64` | Linux 클라이언트 | CLI (`cmd/client`) |
+| `astronlink-client-linux-arm64` | Linux 클라이언트 | CLI (`cmd/client`) |
+| `astronlink-client-windows-amd64.exe` | Windows 클라이언트 | 트레이 GUI (`cmd/winclient`) |
+| `astronlink-server-linux-amd64` | Linux 서버 | CLI (`cmd/server`) |
+| `astronlink-server-linux-arm64` | Linux 서버 | CLI (`cmd/server`) |
+| `astronlink-server-cli-windows-amd64.exe` | Windows 서버 | CLI (`cmd/server`) |
+| `astronlink-server-windows-amd64.exe` | Windows 서버 | 트레이 GUI (`cmd/winserver`) |
 
 <details>
 <summary>설치 스크립트</summary>
 
-**Linux 클라이언트** — `~/reversproxy/` 에 바이너리와 `rproxy {start|stop|status|logs|restart}` 헬퍼를 만들고, `~/.bashrc`·`~/.zshrc` 에 `PATH` 와 프록시 환경 변수(`HTTPS_PROXY`·`HTTP_PROXY=http://127.0.0.1:8080`, `ALL_PROXY=socks5h://127.0.0.1:1080`, `NO_PROXY=localhost,127.0.0.1`)를 추가합니다. `rproxy` 의 토큰은 `changeme` 로 들어가므로 실행 전에 바꾸십시오.
+**Linux 클라이언트** — `~/astronlink/` 에 바이너리와 `rproxy {start|stop|status|logs|restart}` 헬퍼를 만들고, `~/.bashrc`·`~/.zshrc` 에 `PATH` 와 프록시 환경 변수(`HTTPS_PROXY`·`HTTP_PROXY=http://127.0.0.1:8080`, `ALL_PROXY=socks5h://127.0.0.1:1080`, `NO_PROXY=localhost,127.0.0.1`)를 추가합니다. `rproxy` 의 토큰은 `changeme` 로 들어가므로 실행 전에 바꾸십시오.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/AstronWorks/reversproxy/master/scripts/install-client.sh | bash
+curl -fsSL https://raw.githubusercontent.com/AstronWorks/AstronLink/master/scripts/install-client.sh | bash
 ```
 
-**Windows 클라이언트 (일반 사용자 권한)** — `%LOCALAPPDATA%\reversproxy` 에 트레이 클라이언트와 기본 `config.yaml` 을 설치하고, 로그온 자동 시작(HKCU Run), 탐색기 우클릭 "파일 전송" 메뉴를 등록한 뒤 실행합니다. VPN 모드용 `wintun.dll` 은 WireGuard LLC 서명을 확인한 뒤 함께 설치합니다.
+**Windows 클라이언트 (일반 사용자 권한)** — `%LOCALAPPDATA%\astronlink` 에 트레이 클라이언트와 기본 `config.yaml` 을 설치하고, 로그온 자동 시작(HKCU Run), 탐색기 우클릭 "파일 전송" 메뉴를 등록한 뒤 실행합니다. VPN 모드용 `wintun.dll` 은 WireGuard LLC 서명을 확인한 뒤 함께 설치합니다.
 
 ```powershell
-irm https://raw.githubusercontent.com/AstronWorks/reversproxy/master/scripts/install-client.ps1 | iex
+irm https://raw.githubusercontent.com/AstronWorks/AstronLink/master/scripts/install-client.ps1 | iex
 ```
 
-**Windows 서버 (관리자 PowerShell)** — `%ProgramFiles%\reversproxy` 에 설치하고, `server.yaml` 을 만들고, 서비스 `reversproxy-server` 를 등록(자동 시작, 실패 시 5·10·30초 후 재시작)하며, 8444·8080·8445·9090 인바운드 방화벽 규칙을 추가합니다. 생성되는 `server.yaml` 은 `auth_token: changeme`, `insecure: true` 이므로 운영 전에 바꾸십시오.
+**Windows 서버 (관리자 PowerShell)** — `%ProgramFiles%\astronlink` 에 설치하고, `server.yaml` 을 만들고, 서비스 `astronlink-server` 를 등록(자동 시작, 실패 시 5·10·30초 후 재시작)하며, 8444·8080·8445·9090 인바운드 방화벽 규칙을 추가합니다. 생성되는 `server.yaml` 은 `auth_token: changeme`, `insecure: true` 이므로 운영 전에 바꾸십시오.
 
 ```powershell
-irm https://raw.githubusercontent.com/AstronWorks/reversproxy/master/scripts/install-server.ps1 | iex
+irm https://raw.githubusercontent.com/AstronWorks/AstronLink/master/scripts/install-server.ps1 | iex
 ```
 
 **go install**
@@ -387,7 +398,7 @@ HTTPS_PROXY=http://127.0.0.1:8080 curl https://example.com
 
 ```bash
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags "-H windowsgui -s -w" \
-  -o reversproxy-client-windows-amd64.exe ./cmd/winclient
+  -o astronlink-client-windows-amd64.exe ./cmd/winclient
 ```
 
 실제 TUN 장치와 iproute2 를 쓰는 VPN 스모크 테스트는 root 에서 명시적으로 켤 때만 실행됩니다.
@@ -428,6 +439,15 @@ scripts/         빌드·설치 스크립트
 ```
 
 </details>
+
+## 알려진 제한
+
+- **`wintun.dll` 은 릴리스에 포함되지 않습니다.** 릴리스 워크플로(`.github/workflows/release.yml`)는 실행 파일 7종만 올립니다. Windows VPN 모드를 쓰려면 [wintun.net](https://www.wintun.net) 의 `wintun.dll` 을 실행 파일 옆에 따로 두어야 합니다. `scripts/install-client.ps1` 은 서명을 확인한 뒤 자동으로 내려받습니다.
+- **Go 모듈 경로는 현재 `github.com/EcoKG/reversproxy` 입니다.** 저장소 주소(`AstronWorks/AstronLink`)와 다르므로 `go install`·`go get`·import 에는 아래 모듈 경로를 그대로 씁니다.
+
+```bash
+go install github.com/EcoKG/reversproxy/cmd/client@latest
+```
 
 ## 문서
 
