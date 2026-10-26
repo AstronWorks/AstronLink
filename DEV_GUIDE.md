@@ -30,7 +30,7 @@
 ### 로컬 개발 환경
 ```bash
 # 저장소 클론
-git clone https://github.com/EcoKG/reversproxy.git
+git clone https://github.com/AstronWorks/reversproxy.git
 cd reversproxy
 
 # 의존성 설치
