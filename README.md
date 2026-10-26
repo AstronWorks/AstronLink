@@ -16,6 +16,7 @@
 - **자동 재연결**: 다이얼하는 쪽(서버)이 지수 백오프(1초 → 60초, ±20% 지터)로 재연결합니다.
 - **TLS 1.3 강제**: 양쪽 모두 최소 버전 TLS 1.3. 자체 서명 인증서를 자동 생성합니다.
 - **관측성**: 락-프리 원자 카운터 기반 통계, `component` 태그가 붙은 JSON 구조화 로깅(slog).
+- **VPN 모드(가상 네트워크 어댑터)**: 최초 핸드셰이크는 기존 네트워크로 진행하고, 이후 클라이언트가 만든 TUN 어댑터(10.77.0.2)를 통해 트래픽이 서버로 흐릅니다. 서버는 클라이언트별 유저스페이스 TCP/IP 스택으로 패킷을 종단해 출구 노드 역할을 하므로 서버에는 권한·TUN·NAT 설정이 필요 없습니다. → [docs/vpn.md](docs/vpn.md)
 
 > **보안 주의**: 기본 설정은 개발 편의를 위한 값입니다. `auth_token` 기본값은 `changeme`, `insecure` 기본값은 `true`(TLS 검증 생략), `admin_token` 기본값은 빈 문자열(관리 API 무인증)입니다. 운영 환경에서는 반드시 토큰을 교체하고 `insecure: false`로 설정하시기 바랍니다.
 
@@ -106,6 +107,17 @@
 3. **서버가 인터넷 대상을 직접 다이얼**(DNS도 서버 측에서 해석)하고 `MsgSOCKSReady`로 응답합니다.
 4. 모든 페이로드가 `MsgSOCKSData`/`MsgSOCKSClose` 프레임으로 단일 제어 연결 위에서 멀티플렉싱됩니다(별도 데이터 포트 불필요).
 
+### 7. VPN 모드 (가상 네트워크 어댑터)
+
+1. 1~3단계의 연결 수립·TOFU·등록 핸드셰이크는 **기존(물리) 네트워크**로 동일하게 진행합니다.
+2. 클라이언트(`vpn.enabled: true`)가 `MsgVPNOpen` 을 보내면 서버가 해당 제어 연결 전용 유저스페이스 TCP/IP 스택을 만들고 `MsgVPNConfig{ClientAddr:10.77.0.2/24, Gateway:10.77.0.1, MTU, DNS, DataPort}` 로 응답합니다.
+3. 클라이언트가 TUN 어댑터를 만들어 주소·라우트(기본: 전체 터널 = `0.0.0.0/1`+`128.0.0.0/1`)·DNS 를 적용합니다. 서버 IP 에는 물리 경로 bypass 라우트를 넣어 제어 연결은 계속 물리 네트워크를 씁니다.
+4. **이후 트래픽은 어댑터를 통해** `MsgVPNPacket`(raw IP 패킷) 프레임으로 같은 제어 연결 위를 흐르고, 서버 스택이 TCP/UDP 를 종단해 실제 목적지로 다이얼합니다(SSRF 가드 동일 적용). 게이트웨이 `10.77.0.1:53` 은 서버 리졸버로 DNS 를 해석합니다.
+5. 노출 터널의 데이터 다이얼백도 VPN 활성 세션에서는 `10.77.0.1:<data_port>` 로 어댑터를 경유합니다(클라이언트→서버 물리 `:8444` 아웃바운드 불필요).
+6. 서버 세션이 모두 끊기면 라우트·DNS 를 제거하고, 재접속 핸드셰이크 후 다시 적용합니다.
+
+요구 사항·제한 사항·보안 모델은 [docs/vpn.md](docs/vpn.md) 를 참고하십시오. (Windows 클라이언트: 관리자 권한 + `wintun.dll`, Linux 클라이언트: root/`CAP_NET_ADMIN` + iproute2)
+
 ---
 
 ## 주요 기능 표
@@ -125,6 +137,7 @@
 | 멀티 클라이언트 다이얼 | 서버가 다수 클라이언트로 다이얼 | 서버 `clients[]` |
 | 레이트 리미팅 | per-IP 토큰 버킷 + 전역 동시성 제한 (HTTP/HTTPS 프록시 한정) | 서버 |
 | 자동 재연결 | 지수 백오프 1s→60s, ±20% 지터 | 서버 |
+| VPN 모드 | 클라이언트 TUN 어댑터 ↔ 서버 유저스페이스 TCP/IP 스택 (TCP/UDP/DNS) | 클라이언트 `vpn` / 서버 `vpn` |
 
 ---
 
@@ -325,6 +338,7 @@ curl -X POST "http://127.0.0.1:9090/api/decide?name=client1&action=approve"
 | `known_hosts_path` | string | `known_hosts.yaml` | TOFU 지문 저장소 |
 | `auto_approve` | bool | `false` | TOFU 프롬프트 생략, 모든 클라이언트 신뢰 (개발용) |
 | `clients` | list | `nil` | 서버가 다이얼할 클라이언트 목록 (아래 참조) |
+| `vpn` | object | (아래 참조) | VPN 모드 서버 설정 |
 
 `clients[]` 항목 구조:
 
@@ -333,6 +347,15 @@ curl -X POST "http://127.0.0.1:9090/api/decide?name=client1&action=approve"
 | `name` | string | 사람이 읽는 라벨이자 **TOFU 키** |
 | `address` | string | 클라이언트가 리슨하는 `host:port` (서버가 이 주소로 다이얼) |
 | `auth_token` | string | 클라이언트별 토큰; 비우면 서버 `auth_token` 사용 |
+
+`vpn` 블록 (서버):
+
+| 키 | 타입 | 기본값 | 설명 |
+|----|------|--------|------|
+| `enabled` | bool | `true` | 클라이언트의 VPN 세션 요청 허용 (클라이언트가 opt-in 할 때만 세션 생성) |
+| `subnet` | string | `10.77.0.0/24` | 가상 네트워크. 첫 호스트 = 게이트웨이(서버), 두 번째 = 클라이언트. IPv4, /30 이하 |
+| `mtu` | int | `1500` | 가상 링크 MTU (576~65535) |
+| `dns` | list | `[]` | 클라이언트에 푸시할 DNS. 비우면 게이트웨이 주소 + 서버 내장 리졸버 |
 
 > 레이트 리미터는 `max_conn_rate > 0` 또는 `max_concurrent > 0`일 때만 생성되며, **HTTP/HTTPS 프록시 accept 루프에만 적용**됩니다. raw TCP 공개 리스너, 데이터 리스너, SOCKS 경로에는 적용되지 않습니다.
 
@@ -353,6 +376,7 @@ curl -X POST "http://127.0.0.1:9090/api/decide?name=client1&action=approve"
 | `socks_pass` | string | `""` | SOCKS5 인증 비밀번호; 비우면 무인증 |
 | `http_proxy_addr` | string | `:8080` | 로컬 HTTP CONNECT 프록시; 빈 문자열이면 비활성화 |
 | `port_forwards` | list | `nil` | 정적 TCP 포트 포워드 (아래 참조) |
+| `vpn` | object | (아래 참조) | VPN 모드 클라이언트 설정 |
 
 `tunnels[]` 항목 구조:
 
@@ -372,6 +396,17 @@ curl -X POST "http://127.0.0.1:9090/api/decide?name=client1&action=approve"
 | `remote_host` | string | 서버가 다이얼할 대상 호스트 |
 | `remote_port` | int | 대상 포트 |
 | `bind` | string | 로컬 바인드 주소. (YAML 주석은 `0.0.0.0`이라 하나, 빈 값일 때 **런타임 기본값은 `127.0.0.1`**) |
+
+`vpn` 블록 (클라이언트):
+
+| 키 | 타입 | 기본값 | 설명 |
+|----|------|--------|------|
+| `enabled` | bool | `false` | VPN 모드 사용 (어댑터 생성에 관리자/root 권한 필요) |
+| `interface_name` | string | `""` | 어댑터 이름. 비우면 Linux `rproxy0`, Windows `Reversproxy` |
+| `routes` | list | `[]` | 어댑터로 보낼 CIDR. 비우면 전체 터널 (`0.0.0.0/1` + `128.0.0.0/1`) |
+| `bypass` | list | `[]` | 항상 물리 네트워크를 쓸 CIDR (접속한 서버 IP 는 자동 bypass) |
+| `dns` | list | `[]` | 서버가 푸시한 DNS 덮어쓰기 |
+| `mtu` | int | `0` | 서버에 요청할 MTU (0 = 서버 값) |
 
 > SOCKS 설정과 레이트 리밋은 별도의 중첩 블록이 아니라 **평면(flat) 키**입니다(`socks_addr` 등은 클라이언트, `max_conn_*`는 서버). 과거에 서버에 있던 SOCKS 설정은 모두 클라이언트로 이동했습니다.
 
@@ -598,7 +633,7 @@ make run-client    # go run ./cmd/client -listen :8443 -token changeme -name cli
 
 ## 프로젝트 구조
 
-모듈 경로: `github.com/EcoKG/reversproxy` (Go 1.22.10). 직접 의존성: `getlantern/systray` · `golang.org/x/sys`(winclient 전용), `google/uuid`, `gopkg.in/yaml.v3`.
+모듈 경로: `github.com/EcoKG/reversproxy` (Go 1.23.1). 직접 의존성: `getlantern/systray` · `lxn/walk`(Windows GUI), `google/uuid`, `gopkg.in/yaml.v3`, VPN 모드용 `gvisor.dev/gvisor`(서버 유저스페이스 스택) · `golang.zx2c4.com/wireguard`(TUN/Wintun) · `golang.zx2c4.com/wireguard/windows`(winipcfg) · `golang.org/x/net`(DNS 메시지).
 
 ```
 cmd/
@@ -618,6 +653,10 @@ internal/
   stats/         락-프리 원자 카운터 (CountedReader/Writer)
   logger/        JSON slog 로거 (component 태그)
   reconnect/     지수 백오프 + 재연결 설정 헬퍼
+  vpn/           VPN 모드 공통 설정/협상 파라미터
+    adapter/     클라이언트: TUN 어댑터·라우트·DNS·bypass 관리 (Linux iproute2 / Windows winipcfg)
+    netstack/    서버: 클라이언트별 gVisor 유저스페이스 TCP/IP 스택, 게이트웨이 DNS
+    vpntest/     테스트용 가짜 TUN 디바이스 (gVisor 스택이 OS 역할)
   proxy/         빈 플레이스홀더 (stub.go — 미구현)
   app/           ServerApp 추상화 (테스트 전용, 운영 서버는 cmd/server 사용)
 scripts/         build.sh / build.ps1 (크로스 빌드), install-client.sh / install-client.ps1, install-server.ps1, run-client.sh, patch-client.sh

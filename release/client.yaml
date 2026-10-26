@@ -27,3 +27,11 @@ file_transfer:
   send_endpoint: "http://127.0.0.1:8090"
   control_addr: "127.0.0.1:8077"
   max_file_size: 0
+
+# VPN 모드 (가상 네트워크 어댑터) — docs/vpn.md 참고.
+# 최초 핸드셰이크는 기존 네트워크로, 이후 트래픽은 어댑터(10.77.0.2)를 통해 흐른다.
+# Windows: 관리자 권한 + wintun.dll, Linux: root/CAP_NET_ADMIN + iproute2 필요.
+vpn:
+  enabled: false
+  routes: []      # 비우면 전체 터널. loopback(같은 호스트) 테스트는 분할 터널 권장: ["198.18.0.0/15"]
+  bypass: []

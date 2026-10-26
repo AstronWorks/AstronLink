@@ -8,18 +8,24 @@ import (
 	"encoding/gob"
 	"fmt"
 	"log/slog"
+	"net"
+	"net/netip"
 	"time"
 
 	"github.com/EcoKG/reversproxy/internal/protocol"
 	"github.com/EcoKG/reversproxy/internal/reconnect"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
 )
 
 // HandleServerConn manages a single connection from a proxy server.
 // It:
-//  1. Performs the reversed registration handshake.
+//  1. Performs the reversed registration handshake (over the physical network).
 //  2. Re-registers all configured tunnels on this server.
-//  3. Runs the message loop until the connection is lost or ctx is cancelled.
+//  3. In VPN mode (session.VPN != nil), requests a virtual-network session;
+//     once the server answers, traffic moves to the TUN adapter.
+//  4. Runs the message loop until the connection is lost or ctx is cancelled.
 //
 // Each session has its own writer and mux so multiple servers can be served
 // concurrently. Client-originated SOCKS / HTTP CONNECT / port-forward traffic
@@ -37,6 +43,15 @@ func HandleServerConn(
 
 	defer conn.Close()
 	defer mux.CloseAll()
+
+	// Keep this server's address on the physical path while the VPN adapter
+	// routes are installed, so the control connection never loops into the
+	// adapter it carries.
+	if session.VPN != nil {
+		if ap, err := netip.ParseAddrPort(conn.RemoteAddr().String()); err == nil {
+			defer session.VPN.TrackPeer(ap.Addr())()
+		}
+	}
 
 	// ------------------------------------------------------------------ //
 	// Registration handshake (reversed)
@@ -245,6 +260,33 @@ func HandleServerConn(
 	}
 
 	// ------------------------------------------------------------------ //
+	// VPN mode: the handshake above ran over the physical network. Ask the
+	// server for a virtual-network session; its reply (MsgVPNConfig) is
+	// handled in the message loop, which then brings up the adapter.
+	// ------------------------------------------------------------------ //
+	var (
+		packetWriter adapter.PacketWriter
+		vpnAttached  bool
+		vpnTimer     *time.Timer
+	)
+	if session.VPN != nil {
+		if pw, ok := writer.(adapter.PacketWriter); !ok {
+			log.Warn("VPN mode: session writer cannot carry packets; VPN disabled for this session")
+		} else {
+			if err := writer.WriteMsg(protocol.MsgVPNOpen, protocol.VPNOpen{MTU: session.VPN.RequestedMTU()}); err != nil {
+				log.Warn("send VPNOpen failed", "err", err)
+				return
+			}
+			packetWriter = pw
+			defer session.VPN.Detach(session.ID)
+			vpnTimer = time.AfterFunc(10*time.Second, func() {
+				log.Warn("server did not answer the VPN request (older server version?)", "server", session.Addr)
+			})
+			defer vpnTimer.Stop()
+		}
+	}
+
+	// ------------------------------------------------------------------ //
 	// Per-session shutdown signal: if the parent ctx is cancelled, send a
 	// disconnect frame and force the read loop to unblock.
 	// ------------------------------------------------------------------ //
@@ -319,7 +361,47 @@ func HandleServerConn(
 				)
 				continue
 			}
+			if gw, ok := vpnDataAddr(session); ok {
+				// VPN active on this session: dial back through the adapter.
+				dataAddr = gw
+			} else {
+				dataAddr = resolveDataAddr(dataAddr, session.Addr)
+			}
 			tunnel.HandleOpenConnection(openConn, dataAddr, log)
+
+		case protocol.MsgVPNConfig:
+			if packetWriter == nil {
+				log.Warn("unexpected VPNConfig (VPN not requested)", "server", session.Addr)
+				continue
+			}
+			vpnTimer.Stop()
+			vc, err := protocol.Decode[protocol.VPNConfig](env.Payload)
+			if err != nil {
+				log.Warn("failed to decode VPNConfig", "err", err)
+				continue
+			}
+			params, err := vpn.ParamsFromConfig(vc)
+			if err != nil {
+				log.Warn("VPN not available on this server", "server", session.Addr, "err", err)
+				continue
+			}
+			if err := session.VPN.Attach(session.ID, params, packetWriter); err != nil {
+				log.Error("VPN adapter activation failed", "server", session.Addr, "err", err)
+				continue
+			}
+			vpnAttached = true
+			log.Info("VPN session established",
+				"server", session.Addr,
+				"address", params.Address,
+				"gateway", params.Gateway,
+				"mtu", params.MTU,
+			)
+			fmt.Printf("VPN: adapter %s via gateway %s (server=%s)\n", params.Address, params.Gateway, session.Addr)
+
+		case protocol.MsgVPNPacket:
+			if vpnAttached {
+				session.VPN.Inbound(env.Payload)
+			}
 
 		case protocol.MsgSOCKSReady:
 			var ready protocol.SOCKSReady
@@ -353,4 +435,31 @@ func HandleServerConn(
 			log.Warn("unhandled message type", "type", env.Type)
 		}
 	}
+}
+
+// vpnDataAddr returns the server's data address on the virtual network when
+// session is the active VPN session.
+func vpnDataAddr(session *ServerSession) (string, bool) {
+	if session.VPN == nil {
+		return "", false
+	}
+	return session.VPN.GatewayDataAddr(session.ID)
+}
+
+// resolveDataAddr makes a server-reported data address dialable from the
+// client: a wildcard/empty host (e.g. "[::]:8444" from a ":8444" listener)
+// is replaced by the host the server connected from.
+func resolveDataAddr(dataAddr, serverAddr string) string {
+	host, port, err := net.SplitHostPort(dataAddr)
+	if err != nil {
+		return dataAddr
+	}
+	if ip, perr := netip.ParseAddr(host); host != "" && (perr != nil || !ip.IsUnspecified()) {
+		return dataAddr
+	}
+	serverHost, _, err := net.SplitHostPort(serverAddr)
+	if err != nil {
+		return dataAddr
+	}
+	return net.JoinHostPort(serverHost, port)
 }

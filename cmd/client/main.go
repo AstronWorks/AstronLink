@@ -19,6 +19,7 @@ import (
 	"github.com/EcoKG/reversproxy/internal/reconnect"
 	"github.com/EcoKG/reversproxy/internal/socks"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
 )
 
 func main() {
@@ -214,6 +215,22 @@ func main() {
 	}
 
 	// ------------------------------------------------------------------ //
+	// VPN mode — the TUN adapter is created after the first server handshake
+	// (which runs over the physical network) and removed on shutdown.
+	// ------------------------------------------------------------------ //
+	var vpnMgr *adapter.Manager
+	if cfg.VPN.Enabled {
+		opts, verr := adapter.OptionsFromConfig(cfg.VPN, log)
+		if verr != nil {
+			log.Error("invalid vpn configuration", "err", verr)
+			return
+		}
+		vpnMgr = adapter.New(opts)
+		defer vpnMgr.Close()
+		fmt.Println("VPN mode: virtual adapter comes up after the first server handshake")
+	}
+
+	// ------------------------------------------------------------------ //
 	// Accept loop — each incoming server connection is handled in its own
 	// goroutine so multiple servers can be served concurrently.
 	// ------------------------------------------------------------------ //
@@ -229,7 +246,7 @@ func main() {
 			return
 		}
 
-		go handleServerSession(ctx, conn, cfg.AuthToken, cfg.Name, rcCfg, pool, log)
+		go handleServerSession(ctx, conn, cfg.AuthToken, cfg.Name, rcCfg, pool, vpnMgr, log)
 	}
 }
 
@@ -242,6 +259,7 @@ func handleServerSession(
 	authToken, name string,
 	rcCfg *reconnect.ClientConfig,
 	pool *client.ServerPool,
+	vpnMgr *adapter.Manager,
 	log *slog.Logger,
 ) {
 	session := &client.ServerSession{
@@ -251,6 +269,7 @@ func handleServerSession(
 		Mux:         tunnel.NewSOCKSMux(),
 		Addr:        conn.RemoteAddr().String(),
 		ConnectedAt: time.Now(),
+		VPN:         vpnMgr,
 	}
 
 	pool.Add(session)

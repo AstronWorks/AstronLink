@@ -79,6 +79,36 @@ type ServerConfig struct {
 	AutoApprove bool `yaml:"auto_approve"`
 	// FileTransfer configures the right-click / drop-folder file transfer feature.
 	FileTransfer FileTransferConfig `yaml:"file_transfer"`
+	// VPN configures the server side of VPN (virtual network adapter) mode.
+	VPN VPNServerConfig `yaml:"vpn"`
+}
+
+// VPNServerConfig configures the server side of VPN mode. When a client asks
+// for a virtual-network session (MsgVPNOpen), the server runs a per-client
+// userspace TCP/IP stack that terminates the client's IP packets and dials the
+// real destinations itself (exit node). No TUN device or OS privileges are
+// needed on the server. The SSRF guard (allow_private_targets) applies.
+type VPNServerConfig struct {
+	// Enabled lets clients open VPN sessions (default true; clients opt in).
+	Enabled bool `yaml:"enabled"`
+	// Subnet is the virtual network (default "10.77.0.0/24"). The first host
+	// address is the server gateway, the second is assigned to the client.
+	// Each client has its own isolated stack, so all clients may share it.
+	Subnet string `yaml:"subnet"`
+	// MTU of the virtual link (default 1500).
+	MTU int `yaml:"mtu"`
+	// DNS servers pushed to clients. Empty = the gateway address, answered by
+	// the server's built-in resolver (DNS is resolved on the server side).
+	DNS []string `yaml:"dns"`
+}
+
+// DefaultVPNServerConfig returns the server VPN defaults.
+func DefaultVPNServerConfig() VPNServerConfig {
+	return VPNServerConfig{
+		Enabled: true,
+		Subnet:  "10.77.0.0/24",
+		MTU:     1500,
+	}
 }
 
 // DefaultServerConfig returns a ServerConfig populated with production-ready
@@ -102,6 +132,7 @@ func DefaultServerConfig() *ServerConfig {
 		LogLevel:       "info",
 		KnownHostsPath: "known_hosts.yaml",
 		FileTransfer:   DefaultFileTransferConfig(),
+		VPN:            DefaultVPNServerConfig(),
 	}
 }
 
@@ -171,6 +202,33 @@ type ClientConfig struct {
 
 	// FileTransfer configures the right-click / drop-folder file transfer feature.
 	FileTransfer FileTransferConfig `yaml:"file_transfer"`
+
+	// VPN configures VPN (virtual network adapter) mode.
+	VPN VPNClientConfig `yaml:"vpn"`
+}
+
+// VPNClientConfig configures the client side of VPN mode. When enabled, the
+// client creates a TUN adapter after the first successful server handshake
+// (which itself runs over the physical network) and routes traffic through it.
+// Creating the adapter requires administrator (Windows, plus wintun.dll next to
+// the executable) or root/CAP_NET_ADMIN (Linux) privileges.
+type VPNClientConfig struct {
+	// Enabled turns VPN mode on (default false).
+	Enabled bool `yaml:"enabled"`
+	// InterfaceName is the adapter name (default "rproxy0" on Linux,
+	// "Reversproxy" on Windows).
+	InterfaceName string `yaml:"interface_name"`
+	// Routes are the destination CIDRs sent through the adapter. Empty =
+	// full tunnel ("0.0.0.0/0", installed as 0.0.0.0/1 + 128.0.0.0/1 so the
+	// original default route stays in place for the control connection).
+	Routes []string `yaml:"routes"`
+	// Bypass are CIDRs that always use the physical network. The address of
+	// every connected server is bypassed automatically.
+	Bypass []string `yaml:"bypass"`
+	// DNS overrides the resolvers pushed by the server (empty = server's).
+	DNS []string `yaml:"dns"`
+	// MTU overrides the server's MTU (0 = server's).
+	MTU int `yaml:"mtu"`
 }
 
 // PortForwardConfig describes a local TCP port forward through the tunnel.

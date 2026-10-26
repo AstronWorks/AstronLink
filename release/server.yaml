@@ -27,3 +27,9 @@ file_transfer:
   token: "loopback-ft-token"
   send_endpoint: "http://127.0.0.1:18089"
   max_file_size: 0
+
+# VPN 모드 — 클라이언트가 요청하면 클라이언트별 유저스페이스 스택을 띄운다(권한 불필요).
+vpn:
+  enabled: true
+  subnet: "10.77.0.0/24"
+  dns: []         # 비우면 게이트웨이(10.77.0.1)가 서버 리졸버로 응답

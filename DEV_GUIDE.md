@@ -24,7 +24,7 @@
 ## 개발 환경 설정
 
 ### 필수 요구사항
-- Go 1.22.10+
+- Go 1.23.1+
 - Git
 
 ### 로컬 개발 환경
@@ -119,6 +119,13 @@ GOOS=windows GOARCH=amd64 go build -ldflags '-H windowsgui' \
 - 자동 재연결 로직
 - 지수 백오프 알고리즘
 - 연결 실패 처리
+
+##### `internal/vpn/` (VPN 모드 — [docs/vpn.md](docs/vpn.md))
+- `vpn`: 서버/클라이언트 공통 설정 검증, 협상 파라미터(`MsgVPNConfig` ↔ `Params`)
+- `vpn/adapter`: 클라이언트 TUN 어댑터 관리 — 활성/대기 세션, 라우트·bypass·DNS 적용과 원복 (Linux iproute2, Windows winipcfg)
+- `vpn/netstack`: 서버측 클라이언트별 gVisor 유저스페이스 TCP/IP 스택, TCP/UDP 출구(SSRF 가드), 게이트웨이 DNS/데이터 포트
+- `vpn/vpntest`: gVisor 스택이 OS 역할을 하는 테스트용 TUN 디바이스 (root 없이 E2E 테스트)
+- 실제 TUN 스모크 테스트: `sudo RPROXY_TUN_SMOKE=1 go test -run TestRealTUNSmoke ./internal/vpn/adapter/`
 
 ## 테스트 가이드
 

@@ -36,6 +36,31 @@ try {
 Write-Host "==> 다운로드 $Version : $DownloadUrl"
 Invoke-WebRequest -Uri $DownloadUrl -OutFile $BinaryPath
 
+# VPN 모드용 wintun.dll (공식 배포본). 실행 파일 옆에 두어야 하며, 설치 전에
+# WireGuard LLC Authenticode 서명을 검증한다. 실패해도 VPN 모드만 영향받는다.
+$WintunDll = Join-Path $InstallDir "wintun.dll"
+if (-not (Test-Path $WintunDll)) {
+    $WintunZip = Join-Path $env:TEMP "reversproxy-wintun.zip"
+    $WintunTmp = Join-Path $env:TEMP "reversproxy-wintun"
+    try {
+        Write-Host "==> wintun.dll 다운로드 (VPN 모드용)"
+        Invoke-WebRequest -Uri "https://www.wintun.net/builds/wintun-0.14.1.zip" -OutFile $WintunZip
+        Expand-Archive -Path $WintunZip -DestinationPath $WintunTmp -Force
+        $WintunArch = if ($env:PROCESSOR_ARCHITECTURE -eq "ARM64") { "arm64" } else { "amd64" }
+        $WintunSrc = Join-Path $WintunTmp "wintun\bin\$WintunArch\wintun.dll"
+        $Sig = Get-AuthenticodeSignature -FilePath $WintunSrc
+        if ($Sig.Status -ne "Valid" -or $Sig.SignerCertificate.Subject -notmatch "WireGuard LLC") {
+            throw "서명 검증 실패 ($($Sig.Status))"
+        }
+        Copy-Item -Path $WintunSrc -Destination $WintunDll
+    } catch {
+        Write-Host "==> wintun.dll 설치 실패 — VPN 모드를 쓰려면 https://www.wintun.net 에서 받아 $InstallDir 에 두십시오: $_" -ForegroundColor Yellow
+    } finally {
+        Remove-Item -Path $WintunZip -Force -ErrorAction SilentlyContinue
+        Remove-Item -Path $WintunTmp -Recurse -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # 기본 config.yaml 생성 (이미 있으면 건드리지 않음).
 if (-not (Test-Path $ConfigPath)) {
     Write-Host "==> 기본 설정 생성: $ConfigPath"
@@ -57,6 +82,13 @@ file_transfer:
   send_endpoint: "http://127.0.0.1:8090"   # 터널 너머 상대 수신기로 닿는 로컬 주소
   control_addr: "127.0.0.1:8077"
   max_file_size: 0
+
+# VPN 모드 (가상 네트워크 어댑터). 관리자 권한으로 실행해야 하며 wintun.dll 필요.
+# 최초 핸드셰이크 후 어댑터가 올라오고, 이후 트래픽은 어댑터를 통해 서버로 흐른다.
+vpn:
+  enabled: false
+  routes: []      # 비우면 전체 터널. 예: ["10.0.0.0/8"]
+  bypass: []
 "@ | Set-Content -Path $ConfigPath -Encoding UTF8
 }
 
