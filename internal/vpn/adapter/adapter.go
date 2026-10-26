@@ -135,9 +135,7 @@ type Manager struct {
 	dnsSet   bool
 	bypass   map[netip.Prefix]func() error
 	peers    map[netip.Addr]int
-	// loopbackPeers counts connected servers on this host (loopback).
-	loopbackPeers int
-	closed        bool
+	closed   bool
 
 	active  atomic.Pointer[attachment]
 	device  atomic.Pointer[deviceBox]
@@ -176,21 +174,16 @@ func (m *Manager) RequestedMTU() int { return m.opts.MTU }
 // Call it when a session starts; call the returned func when it ends. Bypass
 // routes stay in place until the VPN goes inactive, so a server can reconnect
 // from the same address while another session keeps the VPN up.
-// Loopback servers need no bypass but are counted to refuse a full tunnel.
 func (m *Manager) TrackPeer(peer netip.Addr) (release func()) {
 	peer = peer.Unmap()
-	if !peer.IsValid() {
-		return func() {}
+	if !peer.IsValid() || peer.IsLoopback() {
+		return func() {} // loopback never goes through an adapter
 	}
 	m.mu.Lock()
-	if peer.IsLoopback() {
-		m.loopbackPeers++
-	} else {
-		m.peers[peer]++
-		if m.applied != nil {
-			if err := m.bypassLocked(hostPrefix(peer)); err != nil {
-				m.log.Warn("vpn: bypass route for server failed", "server", peer, "err", err)
-			}
+	m.peers[peer]++
+	if m.applied != nil {
+		if err := m.bypassLocked(hostPrefix(peer)); err != nil {
+			m.log.Warn("vpn: bypass route for server failed", "server", peer, "err", err)
 		}
 	}
 	m.mu.Unlock()
@@ -199,9 +192,7 @@ func (m *Manager) TrackPeer(peer netip.Addr) (release func()) {
 	return func() {
 		once.Do(func() {
 			m.mu.Lock()
-			if peer.IsLoopback() {
-				m.loopbackPeers--
-			} else if m.peers[peer]--; m.peers[peer] <= 0 {
+			if m.peers[peer]--; m.peers[peer] <= 0 {
 				delete(m.peers, peer)
 			}
 			m.mu.Unlock()
@@ -219,10 +210,6 @@ func (m *Manager) Attach(id string, p vpn.Params, w PacketWriter) error {
 	defer m.mu.Unlock()
 	if m.closed {
 		return errors.New("vpn: adapter manager closed")
-	}
-	// Checked before the session list is touched so a refusal leaves existing sessions detachable and a standby session cannot take over a looping full tunnel.
-	if m.loopbackPeers > 0 && vpn.IsFullTunnel(m.opts.Routes) {
-		return errors.New("vpn: full tunnel to a server on this host loops the server's exit traffic back into the adapter; set vpn.routes to a split tunnel")
 	}
 	m.removeLocked(id)
 	a := &attachment{id: id, params: p, w: w}
