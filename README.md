@@ -370,18 +370,13 @@ HTTPS_PROXY=http://127.0.0.1:8080 curl https://example.com
 
 ## 성능 측정
 
-같은 TLS 1.3 제어 연결(루프백) 위에서 8 MiB 를 한 방향으로 올리는 처리량입니다. 대상 서버는 같은 호스트의 비루프백 주소에서 받기만 합니다.
+제어 연결(루프백) 위에서 8 MiB 를 한 방향으로 올리는 처리량을 직접 TCP, SOCKS5 경로, VPN 경로로 비교하는 벤치마크가 있습니다. 수치는 호스트·CPU 에 따라 크게 달라지므로 문서에 고정하지 않습니다. 사용 중인 환경에서 다음 명령으로 측정하십시오.
 
-| 경로 | 처리량 (중앙값) | 범위 |
-|------|----------------:|------|
-| 직접 TCP (기준선) | 1,261 MB/s | 1,144 – 1,331 MB/s |
-| SOCKS5 → 제어 연결 → 서버 다이얼 | 130 MB/s | 118 – 149 MB/s |
-| VPN: 앱 → TUN → 제어 연결 → 서버 스택 → 서버 다이얼 | 40 MB/s | 35 – 44 MB/s |
+```bash
+go test -run '^$' -bench BenchmarkUploadThroughput -benchtime 20x -count 3 ./internal/client/
+```
 
-- 측정 명령: `go test -run '^$' -bench BenchmarkUploadThroughput -benchtime 20x -count 3 ./internal/client/` 를 2회 실행 (경로별 표본 6개, 표본마다 8 MiB × 20회). MB/s 는 Go 벤치마크 기준(10⁶ 바이트/초)입니다.
-- 측정 날짜: 2026-10-26
-- 환경: Linux 6.18 (gVisor 샌드박스 컨테이너), Intel Xeon 2.80GHz 4 vCPU, Go 1.24.7
-- VPN 경로는 실제 커널 TUN 대신 gVisor 스택이 클라이언트 OS 역할을 하는 테스트 장치(`internal/vpn/vpntest`)를 거치므로, 클라이언트 쪽 유저스페이스 TCP 처리 비용이 실제 배포보다 더 들어 있습니다. 네트워크 지연·손실이 있는 실제 회선 수치가 아닙니다.
+VPN 경로는 실제 커널 TUN 대신 gVisor 스택이 클라이언트 OS 역할을 하는 테스트 장치(`internal/vpn/vpntest`)를 거칩니다. 네트워크 지연·손실이 있는 실제 회선 수치가 아닙니다.
 
 ## 빌드와 테스트
 
@@ -430,6 +425,7 @@ internal/
     vpntest/     테스트용 TUN 장치 (gVisor 스택이 OS 역할)
   admin/         관리 HTTP 서버, REST, 임베드 UI, SSE 이벤트 버스
   app/           ServerApp (Windows 트레이 서버가 사용)
+  gui/           Windows 관리 콘솔·설정 창 UI (clientui, serverui, logview)
   config/        YAML 설정 로딩, 기본값, 컴파일 타임 상수
   filetransfer/  이어받기·SHA-256 검증 파일 전송
   reconnect/     지수 백오프, 터널 설정 묶음

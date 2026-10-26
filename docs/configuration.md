@@ -63,12 +63,12 @@
 | `http_addr` | `:8080` | `internal/config/config.go:119` | 설치 스크립트는 같음(`scripts/install-server.ps1:48`), README 빠른 시작 예제는 `""`(끔, `README.md:185`) |
 | `https_addr` | `:8445` | `internal/config/config.go:120` | 설치 스크립트는 같음(`scripts/install-server.ps1:49`), README 빠른 시작 예제는 `""`(끔, `README.md:186`) |
 | `admin_addr` | `:9090` (호스트 생략 시 `127.0.0.1`) | `internal/config/config.go:121` | 같음 (`scripts/install-server.ps1:50`) |
-| `file_transfer.receive_addr` | `127.0.0.1:8089` | `internal/config/config.go:283` | — |
-| `file_transfer.control_addr` | `127.0.0.1:8077` | `internal/config/config.go:285` | — |
+| `file_transfer.receive_addr` | `127.0.0.1:8089` | `internal/config/config.go:282` | — |
+| `file_transfer.control_addr` | `127.0.0.1:8077` | `internal/config/config.go:284` | — |
 
-클라이언트의 기본 리스너도 같은 번호를 쓸 수 있습니다: `listen_addr` `:8443`(`config.go:292`), `socks_addr` `127.0.0.1:1080`(`config.go:303`), `http_proxy_addr` `127.0.0.1:8080`(`config.go:304`). 서버의 `http_addr`(`:8080`)와 클라이언트의 `http_proxy_addr`(`127.0.0.1:8080`)는 기본값이 같은 번호이므로, 한 PC 에서 서버와 클라이언트를 함께 실행하면 둘 중 하나를 바꿔야 합니다.
+클라이언트의 기본 리스너도 같은 번호를 쓸 수 있습니다: `listen_addr` `:8443`(`config.go:291`), `socks_addr` `127.0.0.1:1080`(`config.go:302`), `http_proxy_addr` `127.0.0.1:8080`(`config.go:303`). 서버의 `http_addr`(`:8080`)와 클라이언트의 `http_proxy_addr`(`127.0.0.1:8080`)는 기본값이 같은 번호이므로, 한 PC 에서 서버와 클라이언트를 함께 실행하면 둘 중 하나를 바꿔야 합니다.
 
-> **주의 — 같은 PC 의 다른 서비스와 포트가 겹치지 않게 지정하십시오.** `data_addr`·`http_addr`·`https_addr`·`admin_addr` 에 적은 포트를 같은 PC 의 다른 프로그램이 이미 쓰고 있으면 안 됩니다. 예를 들어 다른 서비스가 `0.0.0.0:8787` 을 쓰고 있다면 `http_addr` 를 `:8787` 로 지정하지 말고 다른 포트로 지정합니다. 리슨에 실패하면 현재 코드는 오류를 돌려주고, CLI 서버는 로그를 남긴 뒤 종료 코드 1 로 끝납니다(`cmd/server/main.go:168-171`). 설정을 정하기 전에 점검하는 방법은 [winserver 배포 가이드](winserver-deploy.md#배포-전-포트-확인)에 있습니다.
+> **주의 — 같은 PC 의 다른 서비스와 포트가 겹치지 않게 지정하십시오.** 서버의 `data_addr`·`http_addr`·`https_addr`·`admin_addr` 는 시작할 때 같은 포트를 이미 듣는 리스너가 있는지 확인합니다. 다른 프로세스나 다른 IP 스택(IPv4/IPv6)이 같은 포트를 쓰고 있으면 바인드하지 않고 시작에 실패하며, 오류는 `port <포트> is already held by another listener (reachable at <주소>); refusing to bind <주소>` 형식입니다(`internal/tunnel/listen.go`). 포트 `0` 은 검사하지 않습니다. 예를 들어 다른 서비스가 `0.0.0.0:8787` 을 쓰고 있다면 `http_addr` 를 `:8787` 로 지정하지 말고 다른 포트로 지정합니다. 리슨에 실패하면 CLI 서버는 로그를 남긴 뒤 종료 코드 1 로 끝납니다(`cmd/server/main.go:154-171`). 설정을 정하기 전에 점검하는 방법은 [winserver 배포 가이드](winserver-deploy.md#배포-전-포트-확인)에 있습니다.
 
 ## 클라이언트 (`ClientConfig`)
 

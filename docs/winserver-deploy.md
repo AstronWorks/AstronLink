@@ -50,7 +50,7 @@ Windows 서비스(session 0)는 **트레이 아이콘을 띄울 수 없습니다
 ## 보안 (실 배포 전 필수)
 
 - `auth_token`은 **강한 값**으로(설정 다이얼로그의 "생성" 버튼). 클라이언트와 **동일**해야 연결됨.
-- 가능하면 `insecure: false` + `tls_fingerprint`(클라이언트 인증서 SHA-256 핀닝) 또는 `client_ca_cert`.
+- 가능하면 `insecure: false` + `client_ca_cert`. 지문 고정은 `known_hosts.yaml` 의 TOFU 로 수행하지만, winserver 는 TOFU 승인 단계 없이 다이얼합니다([README](../README.md#보안) 참고). `tls_fingerprint` 키는 파싱만 되고 코드에서 쓰이지 않습니다.
 - 내부망 프록시가 필요 없으면 `allow_private_targets`를 끄면 SSRF 가드가 켜집니다.
 - `admin_token`을 설정하면 Admin API에 Bearer 인증이 걸립니다(비우면 loopback 무인증).
 
@@ -68,7 +68,7 @@ Get-Process -Id <OwningProcess>
 ```
 
 - 확인할 포트: 기본값 `8444`, `8080`, `8445`, `9090` 과 `server.yaml` 에 직접 적은 포트.
-- 점유 중이면 `server.yaml` 에서 다른 포트로 바꿉니다. 예: 같은 PC 에서 `8787` 을 이미 쓰는 서비스가 있으면 `http_addr: ":8787"` 대신 다른 번호(`http_addr: ":8081"`)로 지정합니다.
+- 점유 중이면 서버가 같은 포트로 시작하지 않고 `port <포트> is already held by another listener` 오류를 냅니다. `server.yaml` 에서 다른 포트로 바꿉니다. 예: 같은 PC 에서 `8787` 을 이미 쓰는 서비스가 있으면 `http_addr: ":8787"` 대신 다른 번호(`http_addr: ":8081"`)로 지정합니다.
 - 포트를 바꾸면 클라이언트 측 방화벽 규칙과 접속 주소도 새 번호에 맞춥니다.
 
 ## 방화벽
@@ -79,5 +79,5 @@ Get-Process -Id <OwningProcess>
 ## 코드 서명(선택, Windows 전용 수동 단계)
 
 ```cmd
-signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist\winserver.exe
+signtool sign /fd SHA256 /tr http://timestamp.digicert.com /td SHA256 dist\windows\astronlink-server.exe
 ```
