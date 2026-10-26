@@ -131,7 +131,7 @@ func handleHTTPConnectConn(
 	// ------------------------------------------------------------------ //
 
 	if method != "CONNECT" {
-		body := "reversproxy - HTTP CONNECT proxy\r\nSet HTTPS_PROXY=http://127.0.0.1:8080 to use.\r\n"
+		body := "Astron Link - HTTP CONNECT proxy\r\nSet HTTPS_PROXY=http://127.0.0.1:8080 to use.\r\n"
 		resp := fmt.Sprintf(
 			"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: %d\r\n\r\n%s",
 			len(body), body,

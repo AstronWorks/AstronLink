@@ -17,7 +17,7 @@ import (
 //
 // Usage:
 //
-//	reversproxy-client send [-to URL] [-token T] <file>...
+//	astronlink-client send [-to URL] [-token T] <file>...
 //
 // where -to is the peer's file-transfer receive endpoint as reachable from this
 // host through the tunnel (e.g. a local port-forward or the server's public port).
@@ -36,7 +36,7 @@ func runSend(args []string) int {
 
 	files := fs.Args()
 	if len(files) == 0 {
-		fmt.Fprintln(os.Stderr, "usage: reversproxy-client send [-to URL] [-token T] <file>...")
+		fmt.Fprintln(os.Stderr, "usage: astronlink-client send [-to URL] [-token T] <file>...")
 		return 2
 	}
 

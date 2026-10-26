@@ -1,6 +1,6 @@
 //go:build windows
 
-// Package main implements a Windows system-tray GUI wrapper for the reversproxy
+// Package main implements a Windows system-tray GUI wrapper for the Astron Link
 // SERVER. It runs the full server (data listener, HTTP/HTTPS proxies, admin API,
 // client dial loops) in the user session and exposes status and control
 // through a tray icon and a management console window (Gio; internal/gui).

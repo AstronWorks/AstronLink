@@ -1,6 +1,6 @@
 <#
 .SYNOPSIS
-  reversproxy 서버/클라이언트를 Linux·Windows용으로 크로스컴파일합니다.
+  Astron Link 서버/클라이언트를 Linux·Windows용으로 크로스컴파일합니다.
 
 .DESCRIPTION
   산출물 (dist/ 아래, .gitignore 처리됨):

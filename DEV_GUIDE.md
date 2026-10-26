@@ -30,8 +30,8 @@
 ### 로컬 개발 환경
 ```bash
 # 저장소 클론
-git clone https://github.com/AstronWorks/reversproxy.git
-cd reversproxy
+git clone https://github.com/AstronWorks/AstronLink.git
+cd AstronLink
 
 # 의존성 설치
 go mod download
@@ -49,8 +49,8 @@ go test ./...
 
 | | Linux | Windows |
 |---|---|---|
-| **server** | `dist/linux/reversproxy-server` (CLI) | `dist/windows/reversproxy-server.exe` (CLI) |
-| **client** | `dist/linux/reversproxy-client` (CLI, `cmd/client`) | `dist/windows/reversproxy-client.exe` (GUI 트레이, `cmd/winclient`) |
+| **server** | `dist/linux/astronlink-server` (CLI) | `dist/windows/astronlink-server-cli.exe` (CLI), `dist/windows/astronlink-server.exe` (GUI 트레이, `cmd/winserver`) |
+| **client** | `dist/linux/astronlink-client` (CLI, `cmd/client`) | `dist/windows/astronlink-client.exe` (GUI 트레이, `cmd/winclient`) |
 
 CGO 없이(순수 Go) 빌드하므로 C 컴파일러 없이 어떤 호스트에서도 양쪽 OS 바이너리를 만들 수 있습니다.
 윈도우 GUI 클라이언트는 `-H windowsgui`로 빌드되어 실행 시 콘솔 창이 뜨지 않습니다.
@@ -72,10 +72,10 @@ make dist-windows                  # 윈도우 서버 + GUI 트레이 클라이�
 make server-linux client-windows   # 개별 타깃
 
 # 단발 수동 빌드 예시
-GOOS=linux   GOARCH=amd64 go build -o reversproxy-client      ./cmd/client     # 리눅스 CLI 클라이언트
-GOOS=windows GOARCH=amd64 go build -o reversproxy-server.exe  ./cmd/server     # 윈도우 CLI 서버
+GOOS=linux   GOARCH=amd64 go build -o astronlink-client      ./cmd/client     # 리눅스 CLI 클라이언트
+GOOS=windows GOARCH=amd64 go build -o astronlink-server-cli.exe  ./cmd/server     # 윈도우 CLI 서버
 GOOS=windows GOARCH=amd64 go build -ldflags '-H windowsgui' \
-    -o reversproxy-client.exe ./cmd/winclient                                  # 윈도우 GUI 트레이 클라이언트
+    -o astronlink-client.exe ./cmd/winclient                                  # 윈도우 GUI 트레이 클라이언트
 ```
 
 ## 코드 구조 가이드
@@ -250,4 +250,4 @@ go tool pprof cpu.prof
 
 ---
 
-*이 가이드는 reversproxy 프로젝트 개발을 위한 참고 자료입니다.*
+*이 가이드는 Astron Link 프로젝트 개발을 위한 참고 자료입니다.*

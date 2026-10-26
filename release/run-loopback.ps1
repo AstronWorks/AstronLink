@@ -1,18 +1,18 @@
-# reversproxy — loopback test runner
+# Astron Link — loopback test runner
 #
 # 한 대의 Windows PC에서 server + client + 더미 HTTP 백엔드를 동시에 띄우고,
 # 대시보드를 브라우저로 엽니다.
 #
 # 사용:
-#   irm https://raw.githubusercontent.com/EcoKG/reversproxy/release/loopback-test/release/run-loopback.ps1 | iex
+#   irm https://raw.githubusercontent.com/AstronWorks/AstronLink/master/release/run-loopback.ps1 | iex
 #
 # 또는 폴더에 직접 풀어서:
 #   .\run-loopback.ps1
 
 $ErrorActionPreference = 'Stop'
 
-$RepoRaw = 'https://raw.githubusercontent.com/EcoKG/reversproxy/release/loopback-test/release'
-$WorkDir = Join-Path $env:TEMP 'reversproxy-loopback'
+$RepoRaw = 'https://raw.githubusercontent.com/AstronWorks/AstronLink/master/release'
+$WorkDir = Join-Path $env:TEMP 'astronlink-loopback'
 
 Write-Host "[*] 작업 디렉토리: $WorkDir" -ForegroundColor Cyan
 New-Item -ItemType Directory -Force -Path $WorkDir | Out-Null
@@ -22,17 +22,17 @@ Set-Location $WorkDir
 # 1) 바이너리 + 설정 다운로드
 # ---------------------------------------------------------------------------
 $Files = @(
-  'reversproxy-server.exe',
-  'reversproxy-client.exe',
-  'server.yaml',
-  'client.yaml'
+  @{ Remote = 'reversproxy-server.exe'; Local = 'astronlink-server.exe' },
+  @{ Remote = 'reversproxy-client.exe'; Local = 'astronlink-client.exe' },
+  @{ Remote = 'server.yaml'; Local = 'server.yaml' },
+  @{ Remote = 'client.yaml'; Local = 'client.yaml' }
 )
 
 foreach ($f in $Files) {
-  $dest = Join-Path $WorkDir $f
+  $dest = Join-Path $WorkDir $f.Local
   if (Test-Path $dest) { Remove-Item $dest -Force }
-  Write-Host "[*] 다운로드: $f" -ForegroundColor Cyan
-  Invoke-WebRequest -Uri "$RepoRaw/$f" -OutFile $dest -UseBasicParsing
+  Write-Host "[*] 다운로드: $($f.Remote)" -ForegroundColor Cyan
+  Invoke-WebRequest -Uri "$RepoRaw/$($f.Remote)" -OutFile $dest -UseBasicParsing
 }
 
 # ---------------------------------------------------------------------------
@@ -46,7 +46,7 @@ $BackendJob = Start-Job -Name 'rp-loopback-backend' -ScriptBlock {
   while ($listener.IsListening) {
     try {
       $ctx = $listener.GetContext()
-      $body = "<!doctype html><html><body><h1>reversproxy loopback OK</h1>" +
+      $body = "<!doctype html><html><body><h1>Astron Link loopback OK</h1>" +
               "<p>backend serving at 127.0.0.1:3000</p>" +
               "<p>request path: $($ctx.Request.Url.AbsolutePath)</p></body></html>"
       $bytes = [Text.Encoding]::UTF8.GetBytes($body)
@@ -60,8 +60,8 @@ $BackendJob = Start-Job -Name 'rp-loopback-backend' -ScriptBlock {
 # ---------------------------------------------------------------------------
 # 3) 클라이언트 시작 (먼저 listen 시작해야 서버가 dial 성공)
 # ---------------------------------------------------------------------------
-Write-Host "[*] reversproxy-client 시작 (127.0.0.1:8443 listen)" -ForegroundColor Cyan
-$ClientProc = Start-Process -FilePath ".\reversproxy-client.exe" `
+Write-Host "[*] Astron Link 클라이언트 시작 (127.0.0.1:8443 listen)" -ForegroundColor Cyan
+$ClientProc = Start-Process -FilePath ".\astronlink-client.exe" `
   -ArgumentList @('--config', '.\client.yaml') `
   -PassThru -NoNewWindow `
   -RedirectStandardOutput 'client.log' -RedirectStandardError 'client.err.log'
@@ -71,8 +71,8 @@ Start-Sleep -Seconds 1
 # ---------------------------------------------------------------------------
 # 4) 서버 시작
 # ---------------------------------------------------------------------------
-Write-Host "[*] reversproxy-server 시작 (admin: 127.0.0.1:9090)" -ForegroundColor Cyan
-$ServerProc = Start-Process -FilePath ".\reversproxy-server.exe" `
+Write-Host "[*] Astron Link 서버 시작 (admin: 127.0.0.1:9090)" -ForegroundColor Cyan
+$ServerProc = Start-Process -FilePath ".\astronlink-server.exe" `
   -ArgumentList @('--config', '.\server.yaml') `
   -PassThru -NoNewWindow `
   -RedirectStandardOutput 'server.log' -RedirectStandardError 'server.err.log'

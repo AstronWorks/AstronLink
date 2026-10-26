@@ -535,7 +535,7 @@ func (f *settingsForm) clientsCard(u *UI) layout.Widget {
 				layout.Rigid(func(gtx C) D {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Flexed(1, func(gtx C) D {
-							return t.SectionTitle(gtx, "클라이언트", "서버가 접속할 클라이언트입니다. 클라이언트 PC 에서 reversproxy-client 가 실행 중이어야 합니다.")
+							return t.SectionTitle(gtx, "클라이언트", "서버가 접속할 클라이언트입니다. 클라이언트 PC 에서 astronlink-client 가 실행 중이어야 합니다.")
 						}),
 						gui.HSpace(16),
 						layout.Rigid(t.Btn(&f.addClientBtn, gui.BtnSecondary, "추가", gui.IconAdd).Layout))

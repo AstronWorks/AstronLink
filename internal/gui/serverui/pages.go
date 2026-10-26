@@ -392,7 +392,7 @@ func (p *clientsPage) layout(gtx C, u *UI) D {
 	return u.scroll(gtx, &p.list,
 		func(gtx C) D {
 			return t.Banner(gtx, gui.KindInfo, "서버가 클라이언트에 접속합니다 (역방향)",
-				"클라이언트 PC 의 reversproxy-client 설정에서 name, listen_addr 포트, auth_token 이 아래 값과 같아야 합니다. [토큰 복사]로 값을 옮기십시오.")
+				"클라이언트 PC 의 astronlink-client 설정에서 name, listen_addr 포트, auth_token 이 아래 값과 같아야 합니다. [토큰 복사]로 값을 옮기십시오.")
 		},
 		func(gtx C) D {
 			return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
@@ -562,7 +562,7 @@ func (p *aboutPage) layout(gtx C, u *UI) D {
 		func(gtx C) D {
 			return t.Card(gtx, func(gtx C) D {
 				steps := []string{
-					"1. 클라이언트 PC 에서 reversproxy-client 가 listen_addr(기본 :8443)로 대기합니다.",
+					"1. 클라이언트 PC 에서 astronlink-client 가 listen_addr(기본 :8443)로 대기합니다.",
 					"2. 이 서버가 설정의 클라이언트 주소로 TLS 1.3 연결을 열고 인증 토큰을 보냅니다.",
 					"3. 토큰이 맞으면 터널·SOCKS5·VPN 트래픽이 이 연결로 오갑니다.",
 					"4. 설정 탭에서 저장하면 server.yaml 에 기록되고 서버가 다시 시작됩니다.",
