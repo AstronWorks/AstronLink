@@ -148,7 +148,7 @@ func (s *Server) Start(ctx context.Context, addr string) error {
 		addr = "127.0.0.1" + addr
 	}
 
-	ln, err := net.Listen("tcp", addr)
+	ln, err := tunnel.ListenTCP(addr)
 	if err != nil {
 		return fmt.Errorf("admin: listen %s: %w", addr, err)
 	}
