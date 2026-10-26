@@ -230,7 +230,7 @@ func writeDefaultConfig(path string) error {
 	return saveConfig(path, cfg)
 }
 
-const configHeader = "# Reversproxy 서버 설정 — 관리 콘솔의 [설정] 탭에서 편집합니다.\n"
+const configHeader = "# Astron Link 서버 설정 — 관리 콘솔의 [설정] 탭에서 편집합니다.\n"
 
 // saveConfig validates cfg and writes it atomically, keeping the previous
 // file as server.yaml.bak.

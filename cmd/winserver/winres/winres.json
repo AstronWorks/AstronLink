@@ -8,10 +8,10 @@
     "#1": {
       "0409": {
         "identity": {
-          "name": "Reversproxy.Winserver",
+          "name": "AstronLink.Server",
           "version": "1.7.0.0"
         },
-        "description": "Reversproxy Server",
+        "description": "Astron Link Server",
         "minimum-os": "win10",
         "execution-level": "as invoker",
         "ui-access": false,
@@ -39,12 +39,12 @@
         "info": {
           "0409": {
             "CompanyName": "AstronWorks",
-            "FileDescription": "Reversproxy Server",
+            "FileDescription": "Astron Link Server",
             "FileVersion": "1.7.0",
-            "InternalName": "reversproxy-winserver",
+            "InternalName": "astronlink-server-windows-amd64",
             "LegalCopyright": "MIT License",
-            "OriginalFilename": "reversproxy-winserver.exe",
-            "ProductName": "Reversproxy",
+            "OriginalFilename": "astronlink-server-windows-amd64.exe",
+            "ProductName": "Astron Link",
             "ProductVersion": "1.7.0"
           }
         }

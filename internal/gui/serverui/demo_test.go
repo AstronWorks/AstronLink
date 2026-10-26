@@ -54,7 +54,7 @@ func (d *demoBackend) Autostart() bool            { return d.autostart }
 func (d *demoBackend) SetAutostart(on bool) error { d.autostart = on; return nil }
 func (d *demoBackend) Info() Info {
 	return Info{Version: "v1.7.0", Commit: "532df19", Built: "2026-10-26 15:40",
-		ConfigPath: `C:\Tools\reversproxy\server.yaml`, LogPath: `C:\Tools\reversproxy\server.log`}
+		ConfigPath: `C:\Tools\AstronLink\server.yaml`, LogPath: `C:\Tools\AstronLink\server.log`}
 }
 func (d *demoBackend) ReadLog(int) ([]byte, error) {
 	return []byte(`{"msg":"winserver starting","version":"v1.7.0","commit":"532df19"}

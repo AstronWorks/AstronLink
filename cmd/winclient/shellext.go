@@ -16,7 +16,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -29,7 +28,7 @@ import (
 
 const (
 	menuVerb  = "ReversproxySend"
-	menuLabel = "Reversproxy로 파일 전송"
+	menuLabel = "Astron Link로 파일 전송"
 )
 
 // dispatchWinSubcommands runs a CLI-style subcommand of the GUI binary and exits
@@ -57,44 +56,71 @@ func contextMenuRoots() []string {
 	}
 }
 
-// registerContextMenu adds a per-user (HKCU, no admin) Explorer right-click verb
-// that invokes this binary's send-file mode on the selected file/folder.
-func registerContextMenu() int {
+// setContextMenu adds (on) or removes the per-user (HKCU, no admin) Explorer
+// right-click verb that invokes this binary's send-file mode.
+func setContextMenu(on bool) error {
+	if !on {
+		for _, root := range contextMenuRoots() {
+			_ = registry.DeleteKey(registry.CURRENT_USER, root+`\command`)
+			_ = registry.DeleteKey(registry.CURRENT_USER, root)
+		}
+		return nil
+	}
 	exe, err := os.Executable()
 	if err != nil {
-		showError("Reversproxy", "실행 파일 경로 확인 실패:\n"+err.Error())
-		return 1
+		return fmt.Errorf("실행 파일 경로 확인 실패: %w", err)
 	}
 	command := fmt.Sprintf(`"%s" send-file "%%1"`, exe)
 	for _, root := range contextMenuRoots() {
 		k, _, err := registry.CreateKey(registry.CURRENT_USER, root, registry.SET_VALUE)
 		if err != nil {
-			showError("Reversproxy", "우클릭 메뉴 등록 실패:\n"+err.Error())
-			return 1
+			return err
 		}
 		_ = k.SetStringValue("", menuLabel)
 		_ = k.SetStringValue("Icon", exe)
 		k.Close()
-
 		ck, _, err := registry.CreateKey(registry.CURRENT_USER, root+`\command`, registry.SET_VALUE)
 		if err != nil {
-			showError("Reversproxy", "우클릭 메뉴 등록 실패(command):\n"+err.Error())
-			return 1
+			return err
 		}
 		_ = ck.SetStringValue("", command)
 		ck.Close()
 	}
-	showInfo("Reversproxy", "탐색기 우클릭 메뉴를 등록했습니다.\n(Windows 11은 \"추가 옵션 표시\" 안에 표시됩니다)")
+	return nil
+}
+
+// contextMenuRegistered reports whether the right-click verb exists.
+func contextMenuRegistered() bool {
+	k, err := registry.OpenKey(registry.CURRENT_USER, contextMenuRoots()[0]+`\command`, registry.QUERY_VALUE)
+	if err != nil {
+		return false
+	}
+	k.Close()
+	return true
+}
+
+// refreshContextMenu rewrites an existing registration so its label and
+// executable path follow this build (e.g. after the program moved).
+func refreshContextMenu() {
+	if contextMenuRegistered() {
+		_ = setContextMenu(true)
+	}
+}
+
+// registerContextMenu is the register-menu subcommand.
+func registerContextMenu() int {
+	if err := setContextMenu(true); err != nil {
+		showError("Astron Link", "우클릭 메뉴 등록 실패:\n"+err.Error())
+		return 1
+	}
+	showInfo("Astron Link", "탐색기 우클릭 메뉴를 등록했습니다.\n(Windows 11은 \"추가 옵션 표시\" 안에 표시됩니다)")
 	return 0
 }
 
-// unregisterContextMenu removes the right-click verb.
+// unregisterContextMenu is the unregister-menu subcommand.
 func unregisterContextMenu() int {
-	for _, root := range contextMenuRoots() {
-		_ = registry.DeleteKey(registry.CURRENT_USER, root+`\command`)
-		_ = registry.DeleteKey(registry.CURRENT_USER, root)
-	}
-	showInfo("Reversproxy", "탐색기 우클릭 메뉴를 해제했습니다.")
+	_ = setContextMenu(false)
+	showInfo("Astron Link", "탐색기 우클릭 메뉴를 해제했습니다.")
 	return 0
 }
 
@@ -126,7 +152,7 @@ func runSendFileHelper(paths []string) int {
 		}
 	}
 	if failed > 0 {
-		showError("Reversproxy", "전송 요청 실패 — 트레이 앱이 실행 중인지, config.yaml의 file_transfer 설정을 확인하세요.")
+		showError("Astron Link", "전송 요청 실패 — 트레이 앱이 실행 중인지, 관리 콘솔 설정 > 파일 전송을 확인하십시오.")
 		return 1
 	}
 	return 0
@@ -187,9 +213,4 @@ func startControlServer(ctx context.Context, addr, sendEndpoint, token string, l
 		}
 	}()
 	return nil
-}
-
-// openFolder opens dir in Windows Explorer.
-func openFolder(dir string) {
-	_ = exec.Command("explorer", dir).Start()
 }

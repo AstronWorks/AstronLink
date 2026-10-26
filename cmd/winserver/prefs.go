@@ -4,7 +4,7 @@ package main
 
 import "golang.org/x/sys/windows/registry"
 
-const prefsKeyPath = `Software\Reversproxy\Server`
+const prefsKeyPath = `Software\AstronLink\Server`
 
 // prefDark reports whether the console uses the dark theme: the saved choice,
 // else the Windows app theme.

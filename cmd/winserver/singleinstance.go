@@ -12,8 +12,8 @@ import (
 )
 
 const (
-	instanceMutexName = `Local\ReversproxyServerWinSrv`
-	showEventName     = `Local\ReversproxyServerWinSrvShow`
+	instanceMutexName = `Local\AstronLinkServerWin`
+	showEventName     = `Local\AstronLinkServerWinShow`
 )
 
 // Kept for the process lifetime so the named objects are not released early.
@@ -38,7 +38,7 @@ func acquireSingleInstance() {
 				os.Exit(0)
 			}
 		}
-		showInfo("Reversproxy", "Reversproxy 서버가 이미 실행 중입니다. 트레이 아이콘을 확인하십시오.")
+		showInfo("Astron Link", "Astron Link 서버가 이미 실행 중입니다. 트레이 아이콘을 확인하십시오.")
 		os.Exit(0)
 	}
 	if err != nil {

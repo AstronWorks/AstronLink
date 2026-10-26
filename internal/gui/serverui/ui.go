@@ -258,7 +258,7 @@ func (u *UI) brand(gtx C) D {
 			gui.HSpace(12),
 			layout.Rigid(func(gtx C) D {
 				return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-					layout.Rigid(t.Label(15.5, "Reversproxy", t.P.Text, font.SemiBold).Layout),
+					layout.Rigid(t.Label(15.5, "Astron Link", t.P.Text, font.SemiBold).Layout),
 					layout.Rigid(t.Caption("서버 관리 콘솔").Layout))
 			}))
 	})

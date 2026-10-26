@@ -2,12 +2,11 @@ package serverui
 
 import (
 	"fmt"
-	"net"
 	"net/netip"
-	"strconv"
 	"strings"
 
 	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/EcoKG/reversproxy/internal/gui"
 	"github.com/EcoKG/reversproxy/internal/vpn"
 )
 
@@ -39,42 +38,6 @@ const (
 
 func clientKey(format string, i int) string { return fmt.Sprintf(format, i) }
 
-// listenAddrError checks a listener address ("host:port", host optional).
-func listenAddrError(v string) string {
-	host, port, err := net.SplitHostPort(strings.TrimSpace(v))
-	if err != nil {
-		return "host:port 형식이어야 합니다 (예: :8444, 0.0.0.0:8444)"
-	}
-	if p, err := strconv.Atoi(port); err != nil || p < 1 || p > 65535 {
-		return "포트는 1–65535 사이여야 합니다"
-	}
-	if host != "" && net.ParseIP(strings.Trim(host, "[]")) == nil && host != "localhost" {
-		return "IP 주소만 쓸 수 있습니다 (비우면 모든 주소)"
-	}
-	return ""
-}
-
-// dialAddrError checks an address the server dials (host required).
-func dialAddrError(v string) string {
-	host, port, err := net.SplitHostPort(strings.TrimSpace(v))
-	if err != nil || host == "" {
-		return "IP:포트 또는 호스트:포트 형식이어야 합니다 (예: 192.168.1.10:8443)"
-	}
-	if p, err := strconv.Atoi(port); err != nil || p < 1 || p > 65535 {
-		return "포트는 1–65535 사이여야 합니다"
-	}
-	return ""
-}
-
-func portOf(addr string) (host string, port int) {
-	h, p, err := net.SplitHostPort(strings.TrimSpace(addr))
-	if err != nil {
-		return "", 0
-	}
-	n, _ := strconv.Atoi(p)
-	return h, n
-}
-
 // validate checks cfg the way the server will at start-up and reports the
 // problems per field. It also enforces what the GUI promises on top of that
 // (a non-empty token, unique client names, no listener port clashes).
@@ -97,29 +60,22 @@ func validate(cfg *config.ServerConfig) fieldErrors {
 	if strings.TrimSpace(cfg.DataAddr) == "" {
 		set(fDataAddr, "데이터 리스너 주소는 필수입니다 (예: :8444)")
 	} else {
-		set(fDataAddr, listenAddrError(cfg.DataAddr))
+		set(fDataAddr, gui.ListenAddrError(cfg.DataAddr))
 	}
 	listeners := []struct{ key, addr string }{
 		{fDataAddr, cfg.DataAddr}, {fHTTPAddr, cfg.HTTPAddr}, {fHTTPSAddr, cfg.HTTPSAddr}, {fAdminAddr, cfg.AdminAddr},
 	}
 	for _, l := range listeners[1:] {
 		if strings.TrimSpace(l.addr) != "" {
-			set(l.key, listenAddrError(l.addr))
+			set(l.key, gui.ListenAddrError(l.addr))
 		}
 	}
 	if cfg.FileTransfer.Enabled {
 		listeners = append(listeners, struct{ key, addr string }{fFTAddr, cfg.FileTransfer.ReceiveAddr})
 	}
 	for i, a := range listeners {
-		ha, pa := portOf(a.addr)
-		if pa == 0 {
-			continue
-		}
 		for _, b := range listeners[:i] {
-			hb, pb := portOf(b.addr)
-			if pa == pb && (ha == hb || ha == "" || hb == "") {
-				set(a.key, fmt.Sprintf("다른 리스너와 포트 %d 이(가) 겹칩니다", pa))
-			}
+			set(a.key, gui.PortClash(a.addr, b.addr))
 		}
 	}
 
@@ -133,7 +89,7 @@ func validate(cfg *config.ServerConfig) fieldErrors {
 			set(clientKey(fClientName, i), "같은 이름의 클라이언트가 이미 있습니다")
 		}
 		names[name]++
-		set(clientKey(fClientAddr, i), dialAddrError(cl.Address))
+		set(clientKey(fClientAddr, i), gui.DialAddrError(cl.Address))
 		if strings.TrimSpace(cl.AuthToken) == "changeme" && !cfg.Insecure {
 			set(clientKey(fClientToken, i), "기본값 changeme 는 쓸 수 없습니다")
 		}
@@ -178,7 +134,7 @@ func validate(cfg *config.ServerConfig) fieldErrors {
 		if strings.TrimSpace(cfg.FileTransfer.ReceiveAddr) == "" {
 			set(fFTAddr, "수신 주소를 입력하십시오 (예: 127.0.0.1:8089)")
 		} else {
-			set(fFTAddr, listenAddrError(cfg.FileTransfer.ReceiveAddr))
+			set(fFTAddr, gui.ListenAddrError(cfg.FileTransfer.ReceiveAddr))
 		}
 		if strings.TrimSpace(cfg.FileTransfer.DropDir) == "" {
 			set(fFTDir, "저장 폴더를 입력하십시오")

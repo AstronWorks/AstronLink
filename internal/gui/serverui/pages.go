@@ -206,9 +206,12 @@ func (o *overview) listeners(gtx C, u *UI, cfg *config.ServerConfig) D {
 				return layout.Inset{Top: 10, Bottom: 10}.Layout(gtx, func(gtx C) D {
 					return layout.Flex{Alignment: layout.Middle}.Layout(gtx,
 						layout.Flexed(1, func(gtx C) D {
-							return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-								layout.Rigid(t.Label(13.5, r.name, t.P.Text, font.Medium).Layout),
-								layout.Rigid(t.Caption(r.desc).Layout))
+							// The inset keeps wrapped text clear of the address column.
+							return layout.Inset{Right: 12}.Layout(gtx, func(gtx C) D {
+								return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
+									layout.Rigid(t.Label(13.5, r.name, t.P.Text, font.Medium).Layout),
+									layout.Rigid(t.Caption(r.desc).Layout))
+							})
 						}),
 						layout.Rigid(func(gtx C) D {
 							if r.addr == "" {
@@ -541,7 +544,7 @@ func (p *aboutPage) layout(gtx C, u *UI) D {
 							gui.HSpace(16),
 							layout.Rigid(func(gtx C) D {
 								return layout.Flex{Axis: layout.Vertical}.Layout(gtx,
-									layout.Rigid(t.Label(19, "Reversproxy Server", t.P.Text, font.SemiBold).Layout),
+									layout.Rigid(t.Label(19, "Astron Link Server", t.P.Text, font.SemiBold).Layout),
 									layout.Rigid(t.Muted("역방향 TLS 터널 · SOCKS5 출구 · VPN 서버").Layout))
 							}))
 					}),

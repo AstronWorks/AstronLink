@@ -54,7 +54,7 @@ func runConsole(w *app.Window, u *serverui.UI) {
 	}()
 	defer recoverLog("console")
 	w.Option(
-		app.Title("Reversproxy Server"),
+		app.Title("Astron Link Server"),
 		app.Size(unit.Dp(1240), unit.Dp(800)),
 		app.MinSize(unit.Dp(980), unit.Dp(640)),
 	)

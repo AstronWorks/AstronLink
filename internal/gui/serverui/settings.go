@@ -221,16 +221,6 @@ func (f *settingsForm) addClient(ct config.ClientTarget) {
 
 func text(f *gui.TextField) string { return strings.TrimSpace(f.Text()) }
 
-func splitList(s string) []string {
-	var out []string
-	for _, p := range strings.FieldsFunc(s, func(r rune) bool { return r == ',' || r == ' ' || r == ';' || r == '\n' }) {
-		if p = strings.TrimSpace(p); p != "" {
-			out = append(out, p)
-		}
-	}
-	return out
-}
-
 // collect builds the config the form describes and validates it.
 func (f *settingsForm) collect() (*config.ServerConfig, fieldErrors) {
 	cfg := cloneConfig(f.base)
@@ -281,7 +271,7 @@ func (f *settingsForm) collect() (*config.ServerConfig, fieldErrors) {
 	cfg.VPN.Enabled = f.vpnOn.Value
 	cfg.VPN.Subnet = text(f.vpnSubnet)
 	cfg.VPN.MTU = int(parseInt(f.vpnMTU, fVPNMTU))
-	cfg.VPN.DNS = splitList(f.vpnDNS.Text())
+	cfg.VPN.DNS = gui.SplitList(f.vpnDNS.Text())
 	cfg.MaxConnRate = parseFloat(f.rate, fRate)
 	cfg.MaxConnBurst = int(parseInt(f.burst, fBurst))
 	cfg.MaxConcurrent = parseInt(f.concurrent, fConcurrent)

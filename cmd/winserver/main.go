@@ -56,13 +56,14 @@ func main() {
 	// Only one instance per user session (prevents double port binding); a
 	// second launch asks the running one to show its console.
 	acquireSingleInstance()
+	migrateAutoStart()
 	systray.Run(onReady, onExit)
 }
 
 func onReady() {
 	systray.SetIcon(trayStopped)
-	systray.SetTitle("Reversproxy Server")
-	systray.SetTooltip("Reversproxy 서버")
+	systray.SetTitle("Astron Link Server")
+	systray.SetTooltip("Astron Link 서버")
 
 	mStatus := systray.AddMenuItem("상태: 시작 중...", "서버 상태")
 	mStatus.Disable()
@@ -125,7 +126,7 @@ func onReady() {
 			guard("autostart", func() {
 				enable := !mAutostart.Checked()
 				if err := setAutoStart(enable); err != nil {
-					showError("Reversproxy", "자동 실행 설정 실패:\n"+err.Error())
+					showError("Astron Link", "자동 실행 설정 실패:\n"+err.Error())
 					return
 				}
 				syncAutostartItem(enable)
@@ -179,5 +180,5 @@ func setTray(phase serverui.Phase, text string) {
 	if mStatusItem != nil {
 		mStatusItem.SetTitle("상태: " + text)
 	}
-	systray.SetTooltip("Reversproxy 서버 — " + text)
+	systray.SetTooltip("Astron Link 서버 — " + text)
 }
