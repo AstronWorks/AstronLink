@@ -12,9 +12,9 @@ import (
 
 	"github.com/getlantern/systray"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/filetransfer"
-	"github.com/EcoKG/reversproxy/internal/logger"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/filetransfer"
+	"github.com/AstronWorks/AstronLink/internal/logger"
 )
 
 // ft is the file-transfer receiver and the Explorer-menu control endpoint.

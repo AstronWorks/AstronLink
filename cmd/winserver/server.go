@@ -14,10 +14,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/EcoKG/reversproxy/internal/app"
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/gui/serverui"
-	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/app"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/gui/serverui"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
 )
 
 // srv is the server lifecycle. gen increments on every start and stop so a

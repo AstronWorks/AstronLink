@@ -21,7 +21,7 @@ import (
 
 	"github.com/getlantern/systray"
 
-	"github.com/EcoKG/reversproxy/internal/gui/serverui"
+	"github.com/AstronWorks/AstronLink/internal/gui/serverui"
 )
 
 var (

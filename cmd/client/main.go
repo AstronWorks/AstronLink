@@ -11,15 +11,15 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/client"
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/control"
-	"github.com/EcoKG/reversproxy/internal/filetransfer"
-	"github.com/EcoKG/reversproxy/internal/logger"
-	"github.com/EcoKG/reversproxy/internal/reconnect"
-	"github.com/EcoKG/reversproxy/internal/socks"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
-	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
+	"github.com/AstronWorks/AstronLink/internal/client"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/control"
+	"github.com/AstronWorks/AstronLink/internal/filetransfer"
+	"github.com/AstronWorks/AstronLink/internal/logger"
+	"github.com/AstronWorks/AstronLink/internal/reconnect"
+	"github.com/AstronWorks/AstronLink/internal/socks"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/vpn/adapter"
 )
 
 func main() {

@@ -16,9 +16,9 @@ import (
 	"gioui.org/unit"
 	"golang.org/x/sys/windows"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/gui"
-	"github.com/EcoKG/reversproxy/internal/gui/clientui"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/gui"
+	"github.com/AstronWorks/AstronLink/internal/gui/clientui"
 )
 
 // console is the single management window; nil fields mean it is closed.

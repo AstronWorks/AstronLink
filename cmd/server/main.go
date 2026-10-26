@@ -13,16 +13,16 @@ import (
 	"sync"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/admin"
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/control"
-	"github.com/EcoKG/reversproxy/internal/filetransfer"
-	"github.com/EcoKG/reversproxy/internal/logger"
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/reconnect"
-	"github.com/EcoKG/reversproxy/internal/stats"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
-	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/admin"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/control"
+	"github.com/AstronWorks/AstronLink/internal/filetransfer"
+	"github.com/AstronWorks/AstronLink/internal/logger"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/reconnect"
+	"github.com/AstronWorks/AstronLink/internal/stats"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
 )
 
 func main() {

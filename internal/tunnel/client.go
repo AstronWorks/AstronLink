@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
 )
 
 // HandleSOCKSConnect is called by the client message loop when a MsgSOCKSConnect

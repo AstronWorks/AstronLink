@@ -31,8 +31,8 @@ import (
 
 	"golang.zx2c4.com/wireguard/tun"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
 )
 
 // tunOffset is the headroom kept in front of every packet buffer handed to

@@ -20,7 +20,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/stats"
+	"github.com/AstronWorks/AstronLink/internal/stats"
 )
 
 // ---------------------------------------------------------------------------

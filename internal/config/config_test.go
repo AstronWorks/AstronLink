@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/config"
 )
 
 func TestLoadServerConfig_MissingFile(t *testing.T) {

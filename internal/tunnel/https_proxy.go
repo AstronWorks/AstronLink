@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/EcoKG/reversproxy/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
 )
 
 // LastHTTPSAddr is set by StartHTTPSProxy to the actual bound address (useful

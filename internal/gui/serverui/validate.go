@@ -5,9 +5,9 @@ import (
 	"net/netip"
 	"strings"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/gui"
-	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/gui"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
 )
 
 // fieldErrors maps a settings field key to its validation message.

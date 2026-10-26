@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/config"
 )
 
 // validTestServerConfig returns defaults that pass ValidateSecurity (insecure

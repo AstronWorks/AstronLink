@@ -24,10 +24,10 @@ import (
 
 	"log/slog"
 
-	"github.com/EcoKG/reversproxy/internal/client"
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/socks"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/client"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/socks"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // poolWith returns a single-session ServerPool that wraps cw and mux for tests.

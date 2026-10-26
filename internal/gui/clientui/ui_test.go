@@ -10,8 +10,8 @@ import (
 	"gioui.org/op"
 	"gioui.org/unit"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/gui"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/gui"
 )
 
 type harness struct {

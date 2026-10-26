@@ -9,7 +9,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // Client represents a connected control-plane client.

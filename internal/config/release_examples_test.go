@@ -3,7 +3,7 @@ package config_test
 import (
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/config"
 )
 
 // The shipped example configs must stay loadable (KnownFields is strict).

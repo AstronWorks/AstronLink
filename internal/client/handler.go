@@ -12,11 +12,11 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/reconnect"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
-	"github.com/EcoKG/reversproxy/internal/vpn"
-	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/reconnect"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/vpn"
+	"github.com/AstronWorks/AstronLink/internal/vpn/adapter"
 )
 
 // HandleServerConn manages a single connection from a proxy server.

@@ -8,7 +8,7 @@ import (
 
 	"golang.org/x/sys/windows"
 
-	"github.com/EcoKG/reversproxy/internal/gui/serverui"
+	"github.com/AstronWorks/AstronLink/internal/gui/serverui"
 )
 
 const (

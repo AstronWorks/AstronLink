@@ -22,8 +22,8 @@ import (
 
 	"golang.org/x/sys/windows/registry"
 
-	"github.com/EcoKG/reversproxy/internal/config"
-	"github.com/EcoKG/reversproxy/internal/filetransfer"
+	"github.com/AstronWorks/AstronLink/internal/config"
+	"github.com/AstronWorks/AstronLink/internal/filetransfer"
 )
 
 const (

@@ -1,4 +1,4 @@
-module github.com/EcoKG/reversproxy
+module github.com/AstronWorks/AstronLink
 
 go 1.24.0
 

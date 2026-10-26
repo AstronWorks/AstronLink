@@ -22,7 +22,7 @@ import (
 	"gvisor.dev/gvisor/pkg/tcpip/transport/tcp"
 	"gvisor.dev/gvisor/pkg/tcpip/transport/udp"
 
-	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
+	"github.com/AstronWorks/AstronLink/internal/vpn/adapter"
 )
 
 const nicID = 1

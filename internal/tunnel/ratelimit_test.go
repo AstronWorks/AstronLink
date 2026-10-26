@@ -18,7 +18,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // ---------------------------------------------------------------------------

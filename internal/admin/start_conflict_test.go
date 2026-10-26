@@ -8,11 +8,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/EcoKG/reversproxy/internal/admin"
-	"github.com/EcoKG/reversproxy/internal/control"
-	"github.com/EcoKG/reversproxy/internal/logger"
-	"github.com/EcoKG/reversproxy/internal/stats"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/admin"
+	"github.com/AstronWorks/AstronLink/internal/control"
+	"github.com/AstronWorks/AstronLink/internal/logger"
+	"github.com/AstronWorks/AstronLink/internal/stats"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 func newAdminServer() *admin.Server {

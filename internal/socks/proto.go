@@ -8,7 +8,7 @@ import (
 	"log/slog"
 	"net"
 
-	"github.com/EcoKG/reversproxy/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
 )
 
 // NegotiateSOCKS5 performs the SOCKS5 greeting, optional RFC 1929

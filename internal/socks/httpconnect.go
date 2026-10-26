@@ -26,9 +26,9 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/EcoKG/reversproxy/internal/client"
-	"github.com/EcoKG/reversproxy/internal/protocol"
-	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/AstronWorks/AstronLink/internal/client"
+	"github.com/AstronWorks/AstronLink/internal/protocol"
+	"github.com/AstronWorks/AstronLink/internal/tunnel"
 )
 
 // LastClientHTTPProxyAddr is the actual bound address after
