@@ -21,11 +21,13 @@ import (
 	"github.com/EcoKG/reversproxy/internal/protocol"
 	"github.com/EcoKG/reversproxy/internal/stats"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn"
 )
 
 // ServerApp encapsulates the server application with its dependencies.
 type ServerApp struct {
 	config      *config.ServerConfig
+	vpn         vpn.ServerSettings
 	log         *slog.Logger
 	registry    *control.ClientRegistry
 	manager     *tunnel.Manager
@@ -52,10 +54,15 @@ func NewServerApp(cfg *config.ServerConfig) (*ServerApp, error) {
 		return nil, fmt.Errorf("insecure configuration: %w", err)
 	}
 
+	vpnSettings, err := vpn.ServerSettingsFromConfig(cfg.VPN)
+	if err != nil {
+		return nil, fmt.Errorf("invalid vpn configuration: %w", err)
+	}
+
 	log := logger.NewWithLevel("server", cfg.LogLevel)
 
 	// TLS setup
-	_, err := control.LoadOrGenerateCert(cfg.CertPath, cfg.KeyPath)
+	_, err = control.LoadOrGenerateCert(cfg.CertPath, cfg.KeyPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load or generate TLS certificate: %w", err)
 	}
@@ -67,6 +74,7 @@ func NewServerApp(cfg *config.ServerConfig) (*ServerApp, error) {
 
 	app := &ServerApp{
 		config:      cfg,
+		vpn:         vpnSettings,
 		log:         log,
 		registry:    control.NewClientRegistry(),
 		manager:     tunnel.NewManager(),
@@ -110,6 +118,7 @@ func (app *ServerApp) GlobalStats() *stats.ServerStats { return app.globalStats 
 func (app *ServerApp) Start(ctx context.Context) error {
 	// Apply the SSRF egress policy before any control connection is handled.
 	control.SetAllowPrivateSOCKSTargets(app.config.AllowPrivateTargets)
+	control.SetVPNSettings(app.vpn)
 
 	app.log.Info("starting server",
 		"data_addr", app.config.DataAddr,
@@ -118,6 +127,7 @@ func (app *ServerApp) Start(ctx context.Context) error {
 		"admin_addr", app.config.AdminAddr,
 		"log_level", app.config.LogLevel,
 		"client_targets", len(app.config.Clients),
+		"vpn_enabled", app.vpn.Enabled,
 	)
 
 	// Warn if the default insecure token is in use.

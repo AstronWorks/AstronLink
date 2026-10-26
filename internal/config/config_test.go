@@ -196,3 +196,51 @@ func TestDefaultClientConfig(t *testing.T) {
 		t.Error("DefaultClientConfig: Name is empty")
 	}
 }
+
+func TestVPNConfigBlocks(t *testing.T) {
+	dir := t.TempDir()
+
+	// Server: defaults enable VPN for clients that opt in; a partial block
+	// keeps the other defaults.
+	srv := config.DefaultServerConfig()
+	if !srv.VPN.Enabled || srv.VPN.Subnet != "10.77.0.0/24" || srv.VPN.MTU != 1500 {
+		t.Fatalf("server VPN defaults = %+v", srv.VPN)
+	}
+	srvPath := filepath.Join(dir, "server.yaml")
+	if err := os.WriteFile(srvPath, []byte("vpn:\n  subnet: \"10.99.0.0/24\"\n  dns: [\"1.1.1.1\"]\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	srv, err := config.LoadServerConfig(srvPath)
+	if err != nil {
+		t.Fatalf("LoadServerConfig: %v", err)
+	}
+	if !srv.VPN.Enabled || srv.VPN.Subnet != "10.99.0.0/24" || srv.VPN.MTU != 1500 || len(srv.VPN.DNS) != 1 {
+		t.Fatalf("server VPN = %+v", srv.VPN)
+	}
+
+	// Client: VPN is opt-in.
+	if config.DefaultClientConfig().VPN.Enabled {
+		t.Fatal("client VPN must be disabled by default")
+	}
+	cliPath := filepath.Join(dir, "client.yaml")
+	cliYAML := "vpn:\n  enabled: true\n  interface_name: \"rp0\"\n  routes: [\"10.0.0.0/8\"]\n  bypass: [\"192.168.0.0/16\"]\n  mtu: 1400\n"
+	if err := os.WriteFile(cliPath, []byte(cliYAML), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	cli, err := config.LoadClientConfig(cliPath)
+	if err != nil {
+		t.Fatalf("LoadClientConfig: %v", err)
+	}
+	v := cli.VPN
+	if !v.Enabled || v.InterfaceName != "rp0" || len(v.Routes) != 1 || len(v.Bypass) != 1 || v.MTU != 1400 {
+		t.Fatalf("client VPN = %+v", v)
+	}
+
+	// Unknown keys inside the block are rejected like everywhere else.
+	if err := os.WriteFile(cliPath, []byte("vpn:\n  enable: true\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := config.LoadClientConfig(cliPath); err == nil {
+		t.Fatal("typo'd vpn key accepted")
+	}
+}

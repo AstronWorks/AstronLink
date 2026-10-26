@@ -32,6 +32,14 @@ func (w *CtrlConnWriter) Write(msgType protocol.MsgType, payload any) error {
 	return protocol.WriteMessage(w.conn, msgType, payload)
 }
 
+// WritePacket writes one raw IP packet as a MsgVPNPacket frame, under the same
+// lock as Write so it cannot interleave with other frames.
+func (w *CtrlConnWriter) WritePacket(pkt []byte) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return protocol.WriteRawMessage(w.conn, protocol.MsgVPNPacket, pkt)
+}
+
 // Conn returns the underlying connection for deadline/close operations (which
 // do not need the write lock).
 func (w *CtrlConnWriter) Conn() net.Conn { return w.conn }

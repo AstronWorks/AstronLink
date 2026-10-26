@@ -22,6 +22,7 @@ import (
 	"github.com/EcoKG/reversproxy/internal/reconnect"
 	"github.com/EcoKG/reversproxy/internal/stats"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn"
 )
 
 func main() {
@@ -88,6 +89,14 @@ func main() {
 	// Apply the SSRF egress policy before any control connection is handled.
 	control.SetAllowPrivateSOCKSTargets(cfg.AllowPrivateTargets)
 
+	// VPN mode (clients opt in; the server runs a userspace stack per client).
+	vpnSettings, err := vpn.ServerSettingsFromConfig(cfg.VPN)
+	if err != nil {
+		log.Error("invalid vpn configuration", "err", err)
+		os.Exit(1)
+	}
+	control.SetVPNSettings(vpnSettings)
+
 	log.Info("server configuration loaded",
 		"data_addr",     cfg.DataAddr,
 		"http_addr",     cfg.HTTPAddr,
@@ -95,6 +104,8 @@ func main() {
 		"admin_addr",    cfg.AdminAddr,
 		"log_level",     cfg.LogLevel,
 		"client_targets", len(cfg.Clients),
+		"vpn_enabled",   vpnSettings.Enabled,
+		"vpn_subnet",    vpnSettings.Subnet,
 		"note",          "SOCKS5 listener is now on the CLIENT side",
 	)
 

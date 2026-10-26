@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -16,6 +17,8 @@ import (
 	"github.com/EcoKG/reversproxy/internal/config"
 	"github.com/EcoKG/reversproxy/internal/protocol"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn"
+	"github.com/EcoKG/reversproxy/internal/vpn/netstack"
 )
 
 // allowPrivateSOCKSTargets, when true, disables the SSRF egress guard so the
@@ -26,6 +29,15 @@ var allowPrivateSOCKSTargets bool
 // SetAllowPrivateSOCKSTargets configures the exit-node SSRF policy. Call once at
 // startup before any control connection is handled.
 func SetAllowPrivateSOCKSTargets(allow bool) { allowPrivateSOCKSTargets = allow }
+
+// vpnSettings is the server's VPN-mode configuration. The zero value
+// (Enabled=false) refuses VPN requests. Configured once at startup via
+// SetVPNSettings.
+var vpnSettings vpn.ServerSettings
+
+// SetVPNSettings configures VPN mode. Call once at startup before any control
+// connection is handled.
+func SetVPNSettings(s vpn.ServerSettings) { vpnSettings = s }
 
 // isBlockedTargetIP reports whether ip is in a range the exit node must refuse
 // to reach (SSRF guard): loopback, private (RFC1918/RFC4193 ULA), link-local,
@@ -187,8 +199,14 @@ func HandleControlConn(
 	// of the client's local SOCKS5 user.
 	serverMux := tunnel.NewSOCKSMux()
 
+	// VPN session (virtual network) — created on the client's MsgVPNOpen.
+	var vpnSess *netstack.Session
+
 	// Ensure cleanup runs regardless of how we exit.
 	defer func() {
+		if vpnSess != nil {
+			vpnSess.Close()
+		}
 		// Close all active SOCKS channels so relay goroutines exit cleanly.
 		serverMux.CloseAll()
 		if mgr != nil {
@@ -310,10 +328,91 @@ func HandleControlConn(
 			}
 			serverMux.DeliverClose(sc.ConnID)
 
+		// ------------------------------------------------------------------
+		// VPN mode: the client brings up a TUN adapter and sends raw IP
+		// packets; this connection's userspace stack terminates them.
+		// ------------------------------------------------------------------
+
+		case protocol.MsgVPNOpen:
+			req, err := protocol.Decode[protocol.VPNOpen](env.Payload)
+			if err != nil {
+				log.Warn("failed to decode VPNOpen", "id", client.ID, "err", err)
+				continue
+			}
+			if vpnSess == nil {
+				vpnSess, err = openVPNSession(clientCtx, req, cw, mgr, dataAddr, log.With("client", client.Name))
+				if err != nil {
+					log.Warn("VPN session refused", "id", client.ID, "name", client.Name, "err", err)
+					_ = cw.Write(protocol.MsgVPNConfig, protocol.VPNConfig{Status: "error", Error: err.Error()})
+					continue
+				}
+			}
+			resp := vpnSess.Config(vpnDataPort(mgr, dataAddr))
+			log.Info("VPN session opened", "id", client.ID, "name", client.Name,
+				"client_addr", resp.ClientAddr, "gateway", resp.Gateway, "mtu", resp.MTU)
+			if err := cw.Write(protocol.MsgVPNConfig, resp); err != nil {
+				log.Warn("failed to send VPNConfig", "id", client.ID, "err", err)
+				return
+			}
+
+		case protocol.MsgVPNPacket:
+			if vpnSess != nil {
+				vpnSess.Inject(env.Payload)
+			}
+
 		default:
 			log.Warn("unhandled message type", "id", client.ID, "type", env.Type)
 		}
 	}
+}
+
+// openVPNSession creates the userspace network stack for one client. Exit
+// traffic uses the same SSRF-guarded dialer as the SOCKS path; the gateway's
+// data port feeds tunnel data connections straight into the data handler so
+// client dial-backs can travel through the virtual network.
+func openVPNSession(
+	ctx context.Context,
+	req protocol.VPNOpen,
+	cw *tunnel.CtrlConnWriter,
+	mgr *tunnel.Manager,
+	dataAddr string,
+	log *slog.Logger,
+) (*netstack.Session, error) {
+	if !vpnSettings.Enabled {
+		return nil, errors.New("VPN mode is disabled on this server")
+	}
+	gateway := map[uint16]func(net.Conn){}
+	if port := vpnDataPort(mgr, dataAddr); port > 0 {
+		gateway[uint16(port)] = func(c net.Conn) {
+			log.Debug("vpn: tunnel data connection via the virtual network", "remote", c.RemoteAddr())
+			tunnel.ServeDataConn(c, mgr, log)
+		}
+	}
+	return netstack.NewSession(ctx, netstack.SessionOptions{
+		Settings:     vpnSettings,
+		RequestedMTU: req.MTU,
+		Dial:         newSOCKSDialer(config.SOCKSDialTimeout).DialContext,
+		GatewayTCP:   gateway,
+		WritePacket:  cw.WritePacket,
+		Log:          log,
+	})
+}
+
+// vpnDataPort is the data-listener port offered on the VPN gateway (0 when
+// there is no tunnel manager or the address has no port).
+func vpnDataPort(mgr *tunnel.Manager, dataAddr string) int {
+	if mgr == nil {
+		return 0
+	}
+	_, portStr, err := net.SplitHostPort(dataAddr)
+	if err != nil {
+		return 0
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil || port <= 0 || port > 65535 {
+		return 0
+	}
+	return port
 }
 
 // handleServerSOCKSConnect is called when the server receives a MsgSOCKSConnect

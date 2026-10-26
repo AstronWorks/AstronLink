@@ -31,6 +31,17 @@ const (
 	MsgSOCKSReady   MsgType = 15 // server → client: result of the server's dial attempt
 	MsgSOCKSData    MsgType = 16 // bidirectional: relay raw bytes for a SOCKS channel
 	MsgSOCKSClose   MsgType = 17 // bidirectional: close a SOCKS channel
+
+	// VPN (virtual network adapter) messages.
+	//
+	// The registration handshake still runs over the physical network. Once it
+	// has completed, a VPN-enabled client sends MsgVPNOpen; the server answers
+	// with the virtual-network addressing in MsgVPNConfig and the client brings
+	// up its TUN adapter. From then on IP packets read from the adapter travel
+	// as MsgVPNPacket frames over the same control connection.
+	MsgVPNOpen   MsgType = 18 // client → server: request a virtual-network session
+	MsgVPNConfig MsgType = 19 // server → client: assigned addressing (or error)
+	MsgVPNPacket MsgType = 20 // bidirectional: one raw IP packet (Envelope.Payload is the packet itself, not gob)
 )
 
 // MaxMessageSize is the maximum allowed byte length of a framed message.
@@ -217,4 +228,32 @@ type SOCKSData struct {
 type SOCKSClose struct {
 	// ConnID identifies the SOCKS channel to close.
 	ConnID string
+}
+
+// VPNOpen is sent by the CLIENT after the registration handshake to ask the
+// server for a virtual-network (TUN adapter) session on this control connection.
+type VPNOpen struct {
+	// MTU is the client's preferred adapter MTU (0 = use the server default).
+	MTU int
+}
+
+// VPNConfig is the server's reply to VPNOpen. On success it carries the
+// addressing the client must assign to its virtual adapter.
+type VPNConfig struct {
+	// Status is "ok" on success and "error" on failure.
+	Status string
+	// Error is a human-readable failure description (empty on success).
+	Error string
+	// ClientAddr is the adapter address in CIDR form (e.g. "10.77.0.2/24").
+	ClientAddr string
+	// Gateway is the server's address on the virtual network (e.g. "10.77.0.1").
+	Gateway string
+	// MTU is the adapter MTU the server's virtual stack uses.
+	MTU int
+	// DNS lists the resolvers the client should use on the adapter.
+	DNS []string
+	// DataPort, when non-zero, is the port at Gateway on which the server
+	// accepts tunnel data connections through the virtual network, so the
+	// client's data dial-backs can use the adapter instead of the physical path.
+	DataPort int
 }

@@ -8,6 +8,7 @@ import (
 
 	"github.com/EcoKG/reversproxy/internal/protocol"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
 )
 
 // ControlWriter is the minimal write interface for a session's control
@@ -36,6 +37,13 @@ func (w *ConnWriter) WriteMsg(msgType protocol.MsgType, payload any) error {
 	return protocol.WriteMessage(w.conn, msgType, payload)
 }
 
+// WritePacket writes one raw IP packet as a MsgVPNPacket frame (VPN mode).
+func (w *ConnWriter) WritePacket(pkt []byte) error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+	return protocol.WriteRawMessage(w.conn, protocol.MsgVPNPacket, pkt)
+}
+
 // ServerSession represents a single connected proxy server. The client may hold
 // multiple concurrent sessions when several servers dial in.
 type ServerSession struct {
@@ -46,6 +54,10 @@ type ServerSession struct {
 	Addr        string
 	ServerName  string
 	ConnectedAt time.Time
+	// VPN, when non-nil, enables VPN mode for this session: after the
+	// handshake the session asks the server for a virtual-network session and
+	// moves packets between it and the shared TUN adapter.
+	VPN *adapter.Manager
 }
 
 // ServerPool tracks all active server sessions and round-robins over them

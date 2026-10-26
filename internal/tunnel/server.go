@@ -55,6 +55,14 @@ func StartDataListener(ctx context.Context, addr string, mgr *Manager, log *slog
 	return boundAddr, nil
 }
 
+// ServeDataConn handles one client data connection that did not arrive on the
+// data listener — e.g. a dial-back through the VPN virtual network, where the
+// server's userspace stack accepts it on the gateway's data port. It takes
+// ownership of conn.
+func ServeDataConn(conn net.Conn, mgr *Manager, log *slog.Logger) {
+	handleDataConn(conn, mgr, log)
+}
+
 // handleDataConn reads the DataConnHello from a client data connection and
 // fulfils the pending external connection so the relay can start.
 func handleDataConn(conn net.Conn, mgr *Manager, log *slog.Logger) {

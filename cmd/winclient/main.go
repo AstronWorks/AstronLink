@@ -26,6 +26,7 @@ import (
 	"github.com/EcoKG/reversproxy/internal/reconnect"
 	"github.com/EcoKG/reversproxy/internal/socks"
 	"github.com/EcoKG/reversproxy/internal/tunnel"
+	"github.com/EcoKG/reversproxy/internal/vpn/adapter"
 	"github.com/getlantern/systray"
 )
 
@@ -385,6 +386,23 @@ func runTunnelLoop(
 		}
 	}
 
+	// VPN mode — the Wintun adapter is created after the first server
+	// handshake (which runs over the physical network) and removed when this
+	// run ends (disconnect / reconnect / quit). Requires Administrator rights
+	// and wintun.dll next to the executable.
+	var vpnMgr *adapter.Manager
+	if cfg.VPN.Enabled {
+		opts, verr := adapter.OptionsFromConfig(cfg.VPN, log)
+		if verr != nil {
+			log.Error("invalid vpn configuration", "err", verr)
+			showError("Reversproxy 오류", "VPN 설정 오류:\n"+verr.Error())
+			updateStatus(mStatus, mToggle, stateDisconnected)
+			return
+		}
+		vpnMgr = adapter.New(opts)
+		defer vpnMgr.Close()
+	}
+
 	updateStatus(mStatus, mToggle, stateConnecting)
 
 	// Accept loop — each inbound server connection is handled in its own
@@ -400,7 +418,7 @@ func runTunnelLoop(
 			updateStatus(mStatus, mToggle, stateDisconnected)
 			return
 		}
-		go handleServerSession(ctx, conn, cfg, rcCfg, pool, log, mStatus, mToggle)
+		go handleServerSession(ctx, conn, cfg, rcCfg, pool, vpnMgr, log, mStatus, mToggle)
 	}
 }
 
@@ -415,6 +433,7 @@ func handleServerSession(
 	cfg *config.ClientConfig,
 	rcCfg *reconnect.ClientConfig,
 	pool *client.ServerPool,
+	vpnMgr *adapter.Manager,
 	log *slog.Logger,
 	mStatus *systray.MenuItem,
 	mToggle *systray.MenuItem,
@@ -426,6 +445,7 @@ func handleServerSession(
 		Mux:         tunnel.NewSOCKSMux(),
 		Addr:        conn.RemoteAddr().String(),
 		ConnectedAt: time.Now(),
+		VPN:         vpnMgr,
 	}
 
 	pool.Add(session)

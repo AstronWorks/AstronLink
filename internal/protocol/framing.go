@@ -36,30 +36,33 @@ func WriteMessage(conn net.Conn, msgType MsgType, payload any) error {
 		return fmt.Errorf("framing: encode payload: %w", err)
 	}
 
-	// Build Envelope and encode it into a second pooled buffer.
+	return WriteRawMessage(conn, msgType, payloadBuf.Bytes())
+}
+
+// WriteRawMessage writes a frame whose Envelope.Payload is raw instead of a
+// gob-encoded struct. It is used for high-rate frames such as MsgVPNPacket,
+// where the receiver consumes Envelope.Payload directly. raw is not retained.
+func WriteRawMessage(conn net.Conn, msgType MsgType, raw []byte) error {
 	env := Envelope{
 		Type:    msgType,
-		Payload: payloadBuf.Bytes(),
+		Payload: raw,
 	}
 	envBuf := encPool.Get().(*bytes.Buffer)
 	envBuf.Reset()
 	defer encPool.Put(envBuf)
 
+	// Reserve the 4-byte length prefix so prefix + envelope go out in a single
+	// Write (one TLS record per frame instead of two).
+	envBuf.Write([]byte{0, 0, 0, 0})
 	if err := gob.NewEncoder(envBuf).Encode(env); err != nil {
 		return fmt.Errorf("framing: encode envelope: %w", err)
 	}
 
-	envBytes := envBuf.Bytes()
-	length := uint32(len(envBytes))
+	frame := envBuf.Bytes()
+	binary.BigEndian.PutUint32(frame[:4], uint32(len(frame)-4))
 
-	// Write 4-byte big-endian length prefix.
-	if err := binary.Write(conn, binary.BigEndian, length); err != nil {
-		return fmt.Errorf("framing: write length prefix: %w", err)
-	}
-
-	// Write envelope payload.
-	if _, err := conn.Write(envBytes); err != nil {
-		return fmt.Errorf("framing: write envelope: %w", err)
+	if _, err := conn.Write(frame); err != nil {
+		return fmt.Errorf("framing: write frame: %w", err)
 	}
 
 	return nil

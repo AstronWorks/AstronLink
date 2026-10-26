@@ -173,3 +173,46 @@ func TestFramingMultipleMessages(t *testing.T) {
 
 // Ensure io package is used (imported for io.ErrUnexpectedEOF reference).
 var _ = io.EOF
+
+// TestWriteRawMessageRoundtrip verifies that a raw frame (MsgVPNPacket) carries
+// its bytes verbatim in Envelope.Payload and interleaves cleanly with
+// gob-encoded frames on the same stream.
+func TestWriteRawMessageRoundtrip(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	packet := []byte{0x45, 0x00, 0x00, 0x14, 0xde, 0xad, 0xbe, 0xef}
+
+	errCh := make(chan error, 1)
+	go func() {
+		if err := protocol.WriteRawMessage(client, protocol.MsgVPNPacket, packet); err != nil {
+			errCh <- err
+			return
+		}
+		errCh <- protocol.WriteMessage(client, protocol.MsgPing, protocol.Ping{Seq: 7})
+	}()
+
+	env, err := protocol.ReadMessage(server)
+	if err != nil {
+		t.Fatalf("ReadMessage (raw): %v", err)
+	}
+	if env.Type != protocol.MsgVPNPacket {
+		t.Fatalf("type = %v; want MsgVPNPacket", env.Type)
+	}
+	if !bytes.Equal(env.Payload, packet) {
+		t.Fatalf("payload = %x; want %x", env.Payload, packet)
+	}
+
+	env, err = protocol.ReadMessage(server)
+	if err != nil {
+		t.Fatalf("ReadMessage (gob): %v", err)
+	}
+	ping, err := protocol.Decode[protocol.Ping](env.Payload)
+	if err != nil || env.Type != protocol.MsgPing || ping.Seq != 7 {
+		t.Fatalf("second frame = %v %+v (err %v); want Ping{7}", env.Type, ping, err)
+	}
+	if err := <-errCh; err != nil {
+		t.Fatalf("write: %v", err)
+	}
+}
