@@ -15,9 +15,10 @@ var relayBufPool = sync.Pool{
 	},
 }
 
-// RelayBiDirectional copies data between a and b until ctx is cancelled,
-// either side is closed, or an error occurs. Both connections are closed
-// before this function returns.
+// RelayBiDirectional copies data between a and b in both directions until both
+// directions reach EOF, a copy error occurs, or ctx is cancelled; EOF on one side
+// half-closes the peer's write side so the reverse direction keeps flowing.
+// Both connections are closed before this function returns.
 func RelayBiDirectional(ctx context.Context, a, b net.Conn) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -31,21 +32,20 @@ func RelayBiDirectional(ctx context.Context, a, b net.Conn) error {
 		b.SetDeadline(past)
 	}()
 
-	var once sync.Once
 	done := make(chan struct{}, 2)
 
 	relay := func(dst, src net.Conn) {
 		bufp := relayBufPool.Get().(*[]byte)
 		defer relayBufPool.Put(bufp)
-		io.CopyBuffer(dst, src, *bufp)
-		// Half-close write side if possible
-		if tc, ok := dst.(*net.TCPConn); ok {
+		_, err := io.CopyBuffer(dst, src, *bufp)
+		tc, ok := dst.(*net.TCPConn)
+		if ok {
 			tc.CloseWrite()
 		}
-		once.Do(func() {
-			// After one direction ends, give the other direction a grace period
+		// A copy error or a peer that cannot half-close ends both directions.
+		if err != nil || !ok {
 			cancel()
-		})
+		}
 		done <- struct{}{}
 	}
 
