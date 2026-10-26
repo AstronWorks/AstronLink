@@ -1,20 +1,20 @@
 #Requires -RunAsAdministrator
 <#
 .SYNOPSIS
-    Install reversproxy server as a Windows service.
+    Install Astron Link server as a Windows service.
 .USAGE
     # PowerShell (관리자 권한):
-    irm https://raw.githubusercontent.com/EcoKG/reversproxy/master/scripts/install-server.ps1 | iex
+    irm https://raw.githubusercontent.com/AstronWorks/AstronLink/master/scripts/install-server.ps1 | iex
 #>
 
 $ErrorActionPreference = "Stop"
-$Repo = "EcoKG/reversproxy"
-$InstallDir = "$env:ProgramFiles\reversproxy"
-$ServiceName = "reversproxy-server"
-$BinaryName = "reversproxy-server.exe"
+$Repo = "AstronWorks/AstronLink"
+$InstallDir = "$env:ProgramFiles\astronlink"
+$ServiceName = "astronlink-server"
+$BinaryName = "astronlink-server.exe"
 $ConfigName = "server.yaml"
 
-Write-Host "==> reversproxy server installer for Windows" -ForegroundColor Cyan
+Write-Host "==> Astron Link server installer for Windows" -ForegroundColor Cyan
 
 # Create install directory
 if (-not (Test-Path $InstallDir)) {
@@ -25,7 +25,7 @@ if (-not (Test-Path $InstallDir)) {
 $ReleasesApi = "https://api.github.com/repos/$Repo/releases/latest"
 try {
     $Release = Invoke-RestMethod -Uri $ReleasesApi
-    $Asset = $Release.assets | Where-Object { $_.name -like "*server-windows*" } | Select-Object -First 1
+    $Asset = $Release.assets | Where-Object { $_.name -like "*server-cli-windows*" } | Select-Object -First 1
     $DownloadUrl = $Asset.browser_download_url
     $Version = $Release.tag_name
 } catch {
@@ -43,7 +43,7 @@ $ConfigPath = Join-Path $InstallDir $ConfigName
 if (-not (Test-Path $ConfigPath)) {
     Write-Host "==> Creating default config at $ConfigPath"
     @"
-# reversproxy server configuration
+# Astron Link server configuration
 data_addr: ":8444"
 http_addr: ":8080"
 https_addr: ":8445"
@@ -98,10 +98,10 @@ $BinPathArg = "`"$BinaryPath`" --config `"$ConfigPath`""
 # Add firewall rules
 Write-Host "==> Adding firewall rules"
 $ports = @(
-    @{Name="reversproxy-data";    Port=8444; Desc="ReverseProxy data connections"},
-    @{Name="reversproxy-http";    Port=8080; Desc="ReverseProxy HTTP proxy"},
-    @{Name="reversproxy-https";   Port=8445; Desc="ReverseProxy HTTPS proxy"},
-    @{Name="reversproxy-admin";   Port=9090; Desc="ReverseProxy admin API"}
+    @{Name="astronlink-data";    Port=8444; Desc="Astron Link data connections"},
+    @{Name="astronlink-http";    Port=8080; Desc="Astron Link HTTP proxy"},
+    @{Name="astronlink-https";   Port=8445; Desc="Astron Link HTTPS proxy"},
+    @{Name="astronlink-admin";   Port=9090; Desc="Astron Link admin API"}
 )
 foreach ($p in $ports) {
     $existing = Get-NetFirewallRule -DisplayName $p.Name -ErrorAction SilentlyContinue

@@ -1,19 +1,19 @@
 <#
 .SYNOPSIS
-    Install the reversproxy Windows GUI (system-tray) client.
+    Install the Astron Link Windows GUI (system-tray) client.
 .DESCRIPTION
     Per-user install (no admin required): downloads the tray client, creates a
     default config.yaml (with a file_transfer block), registers it to auto-start
     at logon, registers the Explorer right-click "파일 전송" menu, and launches it.
 .USAGE
     # PowerShell (일반 사용자 권한):
-    irm https://raw.githubusercontent.com/EcoKG/reversproxy/master/scripts/install-client.ps1 | iex
+    irm https://raw.githubusercontent.com/AstronWorks/AstronLink/master/scripts/install-client.ps1 | iex
 #>
 
 $ErrorActionPreference = "Stop"
-$Repo = "EcoKG/reversproxy"
-$InstallDir = Join-Path $env:LOCALAPPDATA "reversproxy"
-$BinaryName = "reversproxy-client.exe"
+$Repo = "AstronWorks/AstronLink"
+$InstallDir = Join-Path $env:LOCALAPPDATA "astronlink"
+$BinaryName = "astronlink-client.exe"
 $BinaryPath = Join-Path $InstallDir $BinaryName
 $ConfigPath = Join-Path $InstallDir "config.yaml"
 
@@ -40,8 +40,8 @@ Invoke-WebRequest -Uri $DownloadUrl -OutFile $BinaryPath
 # WireGuard LLC Authenticode 서명을 검증한다. 실패해도 VPN 모드만 영향받는다.
 $WintunDll = Join-Path $InstallDir "wintun.dll"
 if (-not (Test-Path $WintunDll)) {
-    $WintunZip = Join-Path $env:TEMP "reversproxy-wintun.zip"
-    $WintunTmp = Join-Path $env:TEMP "reversproxy-wintun"
+    $WintunZip = Join-Path $env:TEMP "astronlink-wintun.zip"
+    $WintunTmp = Join-Path $env:TEMP "astronlink-wintun"
     try {
         Write-Host "==> wintun.dll 다운로드 (VPN 모드용)"
         Invoke-WebRequest -Uri "https://www.wintun.net/builds/wintun-0.14.1.zip" -OutFile $WintunZip
@@ -65,7 +65,7 @@ if (-not (Test-Path $WintunDll)) {
 if (-not (Test-Path $ConfigPath)) {
     Write-Host "==> 기본 설정 생성: $ConfigPath"
     @"
-# reversproxy GUI 클라이언트 설정
+# Astron Link GUI 클라이언트 설정
 listen_addr: "0.0.0.0:8443"      # 서버가 이 주소로 접속 (인바운드 허용 필요)
 auth_token: "changeme"
 name: "$env:COMPUTERNAME"

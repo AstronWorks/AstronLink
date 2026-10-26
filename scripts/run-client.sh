@@ -1,8 +1,8 @@
 #!/bin/bash
 # ============================================================
-# reversproxy-client 원파일 데몬 스크립트
+# astronlink-client 원파일 데몬 스크립트
 # ============================================================
-# 이 파일과 reversproxy-client 바이너리를 같은 폴더에 넣고 실행
+# 이 파일과 astronlink-client 바이너리를 같은 폴더에 넣고 실행
 #
 # 사용법:
 #   ./run-client.sh              # 시작 (기존 프로세스 자동 종료)
@@ -18,7 +18,7 @@ RDP_LOCAL_PORT=13389
 # ─────────────────────────────────────────────────────
 
 DIR="$(cd "$(dirname "$0")" && pwd)"
-BIN="$DIR/reversproxy-client"
+BIN="$DIR/astronlink-client"
 PID="$DIR/.pid"
 LOG="$DIR/client.log"
 CFG="$DIR/config.yaml"
@@ -59,7 +59,7 @@ YAML
     fi
 
     echo "========================================="
-    echo " reversproxy STARTED (PID: $(cat "$PID"))"
+    echo " Astron Link STARTED (PID: $(cat "$PID"))"
     echo "========================================="
     echo " SOCKS5:  socks5h://127.0.0.1:1080"
     echo " HTTP:    http://127.0.0.1:8080"
@@ -75,7 +75,7 @@ stop() {
         kill "$(cat "$PID")" 2>/dev/null
         rm -f "$PID"
     fi
-    pkill -9 -f "reversproxy-client" 2>/dev/null
+    pkill -9 -f "astronlink-client" 2>/dev/null
     pkill -9 -f "socat.*$RDP_LOCAL_PORT" 2>/dev/null
     echo "Stopped"
 }

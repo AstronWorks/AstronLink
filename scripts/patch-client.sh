@@ -1,19 +1,19 @@
 #!/bin/bash
 # ============================================================
-# reversproxy client — 패치 + 데몬 실행 스크립트
+# Astron Link client — 패치 + 데몬 실행 스크립트
 # ============================================================
 # 사용법:
-#   1. 이 파일과 reversproxy-client 바이너리를 같은 폴더에 넣기
-#   2. chmod +x patch-client.sh reversproxy-client
+#   1. 이 파일과 astronlink-client 바이너리를 같은 폴더에 넣기
+#   2. chmod +x patch-client.sh astronlink-client
 #   3. ./patch-client.sh
 # ============================================================
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-BINARY="$SCRIPT_DIR/reversproxy-client"
+BINARY="$SCRIPT_DIR/astronlink-client"
 INSTALL_DIR="$HOME/bin"
-PID_FILE="$HOME/.reversproxy-client.pid"
-LOG_FILE="$HOME/reversproxy-client.log"
+PID_FILE="$HOME/.astronlink-client.pid"
+LOG_FILE="$HOME/astronlink-client.log"
 
 # ── 기본 설정 (필요시 수정) ──────────────────────────────
 LISTEN_ADDR="${LISTEN_ADDR:-:8443}"
@@ -46,7 +46,7 @@ usage() {
 }
 
 do_install() {
-    echo "==> Installing reversproxy-client"
+    echo "==> Installing astronlink-client"
 
     # Check binary exists
     if [ ! -f "$BINARY" ]; then
@@ -56,15 +56,15 @@ do_install() {
 
     # Install binary
     mkdir -p "$INSTALL_DIR"
-    cp "$BINARY" "$INSTALL_DIR/reversproxy-client"
-    chmod +x "$INSTALL_DIR/reversproxy-client"
-    echo "    Binary: $INSTALL_DIR/reversproxy-client"
+    cp "$BINARY" "$INSTALL_DIR/astronlink-client"
+    chmod +x "$INSTALL_DIR/astronlink-client"
+    echo "    Binary: $INSTALL_DIR/astronlink-client"
 
     # Add proxy env to .bashrc
-    if ! grep -q "# reversproxy-client proxy" "$HOME/.bashrc" 2>/dev/null; then
+    if ! grep -q "# astronlink-client proxy" "$HOME/.bashrc" 2>/dev/null; then
         cat >> "$HOME/.bashrc" << 'BASHRC'
 
-# reversproxy-client proxy
+# astronlink-client proxy
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 export HTTPS_PROXY=http://127.0.0.1:8080
 export HTTP_PROXY=http://127.0.0.1:8080
@@ -97,9 +97,9 @@ do_start() {
         return
     fi
 
-    echo "==> Starting reversproxy-client (daemon)"
+    echo "==> Starting astronlink-client (daemon)"
 
-    nohup "$INSTALL_DIR/reversproxy-client" \
+    nohup "$INSTALL_DIR/astronlink-client" \
         --listen "$LISTEN_ADDR" \
         --token "$AUTH_TOKEN" \
         --name "$CLIENT_NAME" \
@@ -165,9 +165,9 @@ do_logs() {
 
 do_uninstall() {
     do_stop
-    rm -f "$INSTALL_DIR/reversproxy-client"
+    rm -f "$INSTALL_DIR/astronlink-client"
     rm -f "$PID_FILE" "$LOG_FILE"
-    sed -i '/# reversproxy-client proxy/,/^$/d' "$HOME/.bashrc" 2>/dev/null
+    sed -i '/# astronlink-client proxy/,/^$/d' "$HOME/.bashrc" 2>/dev/null
     echo "==> Uninstalled"
 }
 

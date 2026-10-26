@@ -1,4 +1,4 @@
-# reversproxy client — loopback test config
+# Astron Link client — loopback test config
 listen_addr: "127.0.0.1:8443"
 auth_token: "loopback-test-token"
 name: "loopback-client"

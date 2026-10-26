@@ -1,6 +1,6 @@
 //go:build windows
 
-// Package main implements a Windows system-tray GUI wrapper for the reversproxy
+// Package main implements a Windows system-tray GUI wrapper for the Astron Link
 // client. It provides the same tunnel / SOCKS5 / HTTP-proxy / VPN functionality
 // as cmd/client, exposed through a tray icon and a management console window
 // (Gio; internal/gui). Every setting is edited in the console's 설정 page —

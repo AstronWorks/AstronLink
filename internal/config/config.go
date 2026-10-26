@@ -216,7 +216,7 @@ type VPNClientConfig struct {
 	// Enabled turns VPN mode on (default false).
 	Enabled bool `yaml:"enabled"`
 	// InterfaceName is the adapter name (default "rproxy0" on Linux,
-	// "Reversproxy" on Windows).
+	// "AstronLink" on Windows).
 	InterfaceName string `yaml:"interface_name"`
 	// Routes are the destination CIDRs sent through the adapter. Empty =
 	// full tunnel ("0.0.0.0/0", installed as 0.0.0.0/1 + 128.0.0.0/1 so the

@@ -226,8 +226,61 @@ func TestHTTPConnect_NonConnectMethod(t *testing.T) {
 		t.Errorf("expected 200, got %d", resp.StatusCode)
 	}
 	body, _ := io.ReadAll(resp.Body)
-	if !strings.Contains(string(body), "reversproxy") {
-		t.Errorf("expected informational body containing 'reversproxy', got: %q", body)
+	if !strings.Contains(string(body), "Astron Link") {
+		t.Errorf("expected informational body containing 'Astron Link', got: %q", body)
+	}
+}
+
+// fetchInfoResponse sends a non-CONNECT request and returns the response and body.
+func fetchInfoResponse(t *testing.T, request string) (*http.Response, string) {
+	t.Helper()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	proxyAddr, cleanup := newHTTPProxyTestEnv(t, ctx)
+	defer cleanup()
+	time.Sleep(30 * time.Millisecond)
+
+	conn, err := net.DialTimeout("tcp", proxyAddr, 5*time.Second)
+	if err != nil {
+		t.Fatalf("dial proxy: %v", err)
+	}
+	defer conn.Close()
+	_, _ = conn.Write([]byte(request))
+
+	resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+	if err != nil {
+		t.Fatalf("read response: %v", err)
+	}
+	body, _ := io.ReadAll(resp.Body)
+	return resp, string(body)
+}
+
+func TestHTTPConnectBannerAstronLink(t *testing.T) {
+	_, body := fetchInfoResponse(t, "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+	if !strings.HasPrefix(body, "Astron Link - HTTP CONNECT proxy") {
+		t.Errorf("banner = %q", body)
+	}
+}
+
+func TestHTTPConnectBannerNoLegacyName(t *testing.T) {
+	_, body := fetchInfoResponse(t, "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+	if strings.Contains(strings.ToLower(body), "reversproxy") {
+		t.Errorf("banner contains legacy name: %q", body)
+	}
+}
+
+func TestHTTPConnectBannerEmptyRequest(t *testing.T) {
+	_, body := fetchInfoResponse(t, "GET / HTTP/1.1\r\n\r\n")
+	if !strings.HasPrefix(body, "Astron Link - HTTP CONNECT proxy") {
+		t.Errorf("banner = %q", body)
+	}
+}
+
+func TestHTTPConnectResponseOrderUnchanged(t *testing.T) {
+	resp, body := fetchInfoResponse(t, "GET / HTTP/1.1\r\nHost: example.com\r\n\r\n")
+	if resp.StatusCode != http.StatusOK || resp.ContentLength != int64(len(body)) {
+		t.Errorf("status=%d content-length=%d body-len=%d", resp.StatusCode, resp.ContentLength, len(body))
 	}
 }
 
@@ -260,5 +313,34 @@ func TestHTTPConnect_TargetUnreachable(t *testing.T) {
 	}
 	if resp.StatusCode == http.StatusOK {
 		t.Error("expected non-200 status for unreachable target, got 200")
+	}
+}
+
+// TestHTTPConnectAuthRejectUnchanged verifies that a rejected CONNECT (unreachable or malformed target) keeps its non-200 status and carries no banner text.
+func TestHTTPConnectAuthRejectUnchanged(t *testing.T) {
+	for _, target := range []string{"127.0.0.1:1", "no-port-host"} {
+		ctx, cancel := context.WithCancel(context.Background())
+		proxyAddr, cleanup := newHTTPProxyTestEnv(t, ctx)
+		time.Sleep(30 * time.Millisecond)
+
+		conn, err := net.DialTimeout("tcp", proxyAddr, 5*time.Second)
+		if err != nil {
+			t.Fatalf("dial proxy: %v", err)
+		}
+		_, _ = conn.Write(fmt.Appendf(nil, "CONNECT %s HTTP/1.1\r\nHost: %s\r\n\r\n", target, target))
+		resp, err := http.ReadResponse(bufio.NewReader(conn), nil)
+		if err != nil {
+			t.Fatalf("%s: read response: %v", target, err)
+		}
+		body, _ := io.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusOK {
+			t.Errorf("%s: rejected CONNECT returned 200", target)
+		}
+		if strings.Contains(strings.ToLower(string(body)), "reversproxy") {
+			t.Errorf("%s: rejection body contains legacy name: %q", target, body)
+		}
+		conn.Close()
+		cleanup()
+		cancel()
 	}
 }

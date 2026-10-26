@@ -1,11 +1,11 @@
 #!/bin/bash
 set -e
 
-REPO="EcoKG/reversproxy"
-INSTALL_DIR="$HOME/reversproxy"
-BIN="$INSTALL_DIR/reversproxy-client"
+REPO="AstronWorks/AstronLink"
+INSTALL_DIR="$HOME/astronlink"
+BIN="$INSTALL_DIR/astronlink-client"
 
-echo "==> reversproxy-client installer"
+echo "==> astronlink-client installer"
 
 # Detect arch
 ARCH=$(uname -m)
@@ -25,8 +25,8 @@ chmod +x "$BIN"
 # Create run script
 cat > "$INSTALL_DIR/rproxy" << 'SCRIPT'
 #!/bin/bash
-DIR="$HOME/reversproxy"
-BIN="$DIR/reversproxy-client"
+DIR="$HOME/astronlink"
+BIN="$DIR/astronlink-client"
 PID="$DIR/.pid"
 LOG="$DIR/client.log"
 
@@ -41,13 +41,13 @@ HTTP_PROXY=":8080"
 
 case "${1:-start}" in
   start)
-    pkill -9 -f reversproxy-client 2>/dev/null; rm -f "$PID"
+    pkill -9 -f astronlink-client 2>/dev/null; rm -f "$PID"
     nohup "$BIN" --listen "$LISTEN" --token "$TOKEN" --name "$NAME" \
       --local-port "$LOCAL_PORT" --socks-addr "$SOCKS" \
       --http-proxy-addr "$HTTP_PROXY" >> "$LOG" 2>&1 &
     echo $! > "$PID"; sleep 2
     if kill -0 "$(cat "$PID")" 2>/dev/null; then
-      echo "reversproxy started (PID: $(cat "$PID"))"
+      echo "Astron Link started (PID: $(cat "$PID"))"
       echo "  SOCKS5: socks5h://127.0.0.1${SOCKS}"
       echo "  HTTP:   http://127.0.0.1${HTTP_PROXY}"
       echo "  Claude: HTTPS_PROXY=http://127.0.0.1${HTTP_PROXY} claude"
@@ -55,7 +55,7 @@ case "${1:-start}" in
       echo "Failed"; tail -5 "$LOG"; exit 1
     fi ;;
   stop)
-    pkill -9 -f reversproxy-client 2>/dev/null; rm -f "$PID"
+    pkill -9 -f astronlink-client 2>/dev/null; rm -f "$PID"
     echo "Stopped" ;;
   status)
     [ -f "$PID" ] && kill -0 "$(cat "$PID")" 2>/dev/null && echo "Running ($(cat "$PID"))" || echo "Not running" ;;
@@ -72,11 +72,11 @@ chmod +x "$INSTALL_DIR/rproxy"
 # Add to PATH + proxy env
 for RC in "$HOME/.bashrc" "$HOME/.zshrc"; do
   [ -f "$RC" ] || continue
-  if ! grep -q "# reversproxy" "$RC"; then
+  if ! grep -q "# Astron Link" "$RC"; then
     cat >> "$RC" << 'RCBLOCK'
 
-# reversproxy
-export PATH="$HOME/reversproxy:$PATH"
+# Astron Link
+export PATH="$HOME/astronlink:$PATH"
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 export HTTPS_PROXY=http://127.0.0.1:8080
 export HTTP_PROXY=http://127.0.0.1:8080
